@@ -16,7 +16,7 @@ Golang Web Valve - to be connected to your series of tubes
 
 ## coverage
 
-21.0%
+22.9%
 
 ## license
 
