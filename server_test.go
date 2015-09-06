@@ -118,6 +118,41 @@ func Test_Realtime(t *testing.T) {
 	HTTPD.Start()
 	t.Logf("started")
 
+	HTTPRequest("http://localhost:8080/sse")
+
+	HTTPD.Stop = true
+
+	t.Logf("stopping")
+	HTTPD.WG.Wait()
+	t.Logf("stopped")
+}
+
+func Test_LogChan(t *testing.T) {
+	HTTPD := NewWebServer(8082, 60)
+
+	hub = HTTPD.InitRealtimeHub()
+
+	HTTPD.URLhandler(
+		URL("^/$", Index, HTML),
+		URL("^/tea$", Teapot, HTML),
+	)
+	HTTPD.InitLogChan()
+
+	go func() {
+		for {
+			msg := <-HTTPD.LogChan
+			fmt.Println(msg)
+		}
+	}()
+
+	t.Logf("starting")
+	HTTPD.Start()
+	t.Logf("started")
+
+	HTTPRequest("http://localhost:8080/tea")
+	HTTPRequest("http://localhost:8080/")
+	HTTPRequest("http://localhost:8080/tea")
+
 	HTTPD.Stop = true
 
 	t.Logf("stopping")

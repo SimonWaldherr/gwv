@@ -17,10 +17,6 @@ Golang Web Valve - to be connected to your series of tubes
 * Automatic SSL cert generator
 * Realtime Webserver (SSE)
 
-## coverage
-
-27.4%
-
 ## license
 
 [MIT (see LICENSE file)](https://github.com/SimonWaldherr/gwv/blob/master/LICENSE)
