@@ -1,0 +1,36 @@
+os:
+- linux
+language: go
+sudo: false
+go:
+- 1.4.2
+- 1.5
+- tip
+before_install:
+- go get github.com/axw/gocov/gocov
+- go get github.com/mattn/goveralls
+- go get golang.org/x/tools/cmd/cover
+install:
+- go get -t .
+- go get -t simonwaldherr.de/go/gwv
+- go get github.com/modocache/gover
+script:
+- export GO15VENDOREXPERIMENT=1
+- go test -v -coverprofile=coverprofile .
+- $HOME/gopath/bin/gover
+- $HOME/gopath/bin/goveralls -coverprofile=coverprofile -service=travis-ci
+- go tool cover -html=coverprofile -o coverage.html
+- go tool cover -func=coverprofile
+- wget --post-file=coverage.html -q -O- "https://simonwaldherr.de/gocover/?repo=gwv&mode=save&key=$UPLOADSECRET&pull=$TRAVIS_PULL_REQUEST"
+after_success:
+- cp coverprofile coverage.log
+- bash <(curl -s https://raw.githubusercontent.com/codecov/codecov-bash/master/codecov)
+notifications: 
+  email: 
+    recipients:
+      - travis@simon.waldherr.eu
+    on_success: always
+    on_failure: always
+env:
+  matrix:
+    secure: bjYzYKskjYaWx4SXb/nxRnzVas0xGKxNzLZFGxcsmWSssvwzQFCg8TPaTgdDmfgaZvGw5rpyeAfOgf+3R1mjcPNM1Xv6KTeCLwNoh4Bdwc5HyN/Ppn7f/3zhKaGfFx2MXzwmo8fXrtZymXBfJsfk71v4qMuIpHeY/DCCRZD0vbA=
