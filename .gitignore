@@ -23,6 +23,7 @@ _cgo_export.*
 
 _testmain.go
 coverprofile
+gover.coverprofile
 
 *.exe
 *.test
