@@ -1,16 +1,49 @@
 package gwv
 
 import (
+	"bytes"
+	"crypto/tls"
 	"fmt"
+	"io/ioutil"
 	"net/http"
 	"path/filepath"
 	"runtime"
 	"simonwaldherr.de/go/golibs/as"
 	"simonwaldherr.de/go/golibs/cachedfile"
+	"strconv"
 	"syscall"
 	"testing"
 	"time"
 )
+
+func HTTPRequest(url string) string {
+	tr := &http.Transport{
+		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+	}
+	client := &http.Client{Transport: tr}
+	bodymsg := "lorem ipsum"
+	body := bytes.NewBufferString(bodymsg)
+	length := strconv.Itoa(len(bodymsg))
+
+	req, _ := http.NewRequest("POST", url, body)
+	req.Header.Add("User-Agent", "GWV-TEST")
+	req.Header.Add("Content-Length", length)
+	rsp, err := client.Do(req)
+	if err != nil {
+		fmt.Println(err)
+	} else {
+		if rsp.StatusCode == 200 {
+			bodyBytes, _ := ioutil.ReadAll(rsp.Body)
+			return string(bodyBytes)
+		} else if err != nil {
+			fmt.Println(err)
+		} else {
+			return as.String(rsp.StatusCode)
+		}
+		rsp.Body.Close()
+	}
+	return ""
+}
 
 func Index(rw http.ResponseWriter, req *http.Request) (string, int) {
 	return "Do or do not, there is no try", http.StatusOK
@@ -54,7 +87,13 @@ func Test_Webserver(t *testing.T) {
 	HTTPD.Start()
 	t.Logf("started")
 
-	time.Sleep(100 * time.Millisecond)
+	time.Sleep(50 * time.Millisecond)
+	HTTPRequest("http://localhost:8080/")
+	HTTPRequest("https://localhost:4443/")
+	HTTPRequest("http://localhost:8080/favicon.ico")
+	HTTPRequest("http://localhost:8080/go/")
+	time.Sleep(50 * time.Millisecond)
+
 	HTTPD.Stop = true
 
 	t.Logf("stopping")

@@ -5,4 +5,4 @@ COVERAGE="$(echo $COVER | sed -E "s/^.+ ([0-9.%]+) .+/\1/")"
 COVERINT="$(echo $COVER | sed -E "s/^.+ ([0-9]+).[0-9]%.+/\1/")"
 CHEADER="$(cat README.md | egrep "[0-9.]+%")"
 
-cat README.md | replace "$CHEADER" "$COVERAGE" > README..md; mv README..md README.md
+go test . && (cat README.md | replace "$CHEADER" "$COVERAGE" > README..md; mv README..md README.md)
