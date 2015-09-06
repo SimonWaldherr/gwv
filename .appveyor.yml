@@ -5,19 +5,20 @@ os:
 - Visual Studio 2015
 - Default Azure
 build:
-	verbosity: detailed
+  verbosity: detailed
+
 notifications:
 - provider: Email
-	to:
-	- travis@simon.waldherr.eu
-	on_build_success: true
-	on_build_failure: true
-	on_build_status_changed: true
+  to:
+  - travis@simon.waldherr.eu
+  on_build_success: true
+  on_build_failure: true
+  on_build_status_changed: true
 
 clone_folder: c:\gopath\src\github.com\simonwaldherr\golibs
 
 environment:
-GOPATH: c:\gopath
+  GOPATH: c:\gopath
 
 install:
 - echo %PATH%
