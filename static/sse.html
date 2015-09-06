@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Server-sent Events</title>
+  <script type="text/javascript">
+    /*jslint browser: true, plusplus: true, indent: 2 */
+    var post = function () {
+      "use strict";
+      var http = new XMLHttpRequest(),
+        url = "/send",
+        params = document.getElementById('input').value;
+      document.getElementById('input').value = '';
+      document.getElementById('input').style.backgroundColor = '#cccccc';
+      http.open("POST", url, true);
+      http.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
+      http.onreadystatechange = function () {
+        if (http.readyState === 4 && http.status === 200) {
+          document.getElementById('input').style.backgroundColor = '#ffffff';
+        }
+      };
+      http.send(params);
+    };
+    var htmlEscape = function (str) {
+      "use strict";
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;');
+    };
+    window.onload = function() {
+      var stream = document.getElementById('stream');
+      var source = new EventSource('/sse');
+      source.onmessage = function(e) {
+        var ao = JSON.parse(e.data);
+        console.log(ao);
+        stream.innerHTML = htmlEscape(ao.str) + '<br>' + stream.innerHTML;
+      };
+    }
+  </script>
+</head>
+<body>
+  <h1>Server-sent Events Example</h1>
+  <div id="stream"></div>
+</body>
+</html>

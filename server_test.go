@@ -51,18 +51,38 @@ func Test_Webserver(t *testing.T) {
 	HTTPD.Handler500(H500)
 
 	t.Logf("starting")
-
 	HTTPD.Start()
-
 	t.Logf("started")
 
 	time.Sleep(100 * time.Millisecond)
 	HTTPD.Stop = true
 
 	t.Logf("stopping")
-
 	HTTPD.WG.Wait()
+	t.Logf("stopped")
+}
 
+var messageChannel = make(chan string, 16)
+var hub *Connections
+
+func Test_Realtime(t *testing.T) {
+	HTTPD := NewWebServer(8081, 60)
+
+	hub = HTTPD.InitRealtimeHub()
+
+	HTTPD.URLhandler(
+		URL("^/$", Index, HTML),
+		SSE("^/sse$", hub, messageChannel),
+	)
+
+	t.Logf("starting")
+	HTTPD.Start()
+	t.Logf("started")
+
+	HTTPD.Stop = true
+
+	t.Logf("stopping")
+	HTTPD.WG.Wait()
 	t.Logf("stopped")
 }
 

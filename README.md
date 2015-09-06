@@ -1,6 +1,9 @@
 # GWV β
 Golang Web Valve - to be connected to your series of tubes
 
+[![Build Status](https://travis-ci.org/SimonWaldherr/gwv.svg?branch=master)](https://travis-ci.org/SimonWaldherr/gwv) 
+[![Coverage Status](https://coveralls.io/repos/SimonWaldherr/gwv/badge.svg?branch=master&service=github)](https://coveralls.io/github/SimonWaldherr/gwv?branch=master)
+
 ## install
 
 ```go get -u -t simonwaldherr.de/go/gwv```
@@ -16,7 +19,7 @@ Golang Web Valve - to be connected to your series of tubes
 
 ## coverage
 
-22.9%
+27.4%
 
 ## license
 
