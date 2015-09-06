@@ -19,8 +19,8 @@ script:
 - go test -v -coverprofile=gover.coverprofile .
 - $HOME/gopath/bin/gover
 - $HOME/gopath/bin/goveralls -coverprofile=gover.coverprofile -service=travis-ci
-- go tool cover -html=coverprofile -o coverage.html
-- go tool cover -func=coverprofile
+- go tool cover -html=gover.coverprofile -o coverage.html
+- go tool cover -func=gover.coverprofile
 - wget --post-file=coverage.html -q -O- "https://simonwaldherr.de/gocover/?repo=gwv&mode=save&key=$UPLOADSECRET&pull=$TRAVIS_PULL_REQUEST"
 after_success:
 - cp coverprofile coverage.log
