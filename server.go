@@ -57,7 +57,7 @@ type WebServer struct {
 
 func (u *HandlerWrapper) String() string {
 	return fmt.Sprintf(
-		"{\n  URL: %s\n  Handler: %s\n}", u.match, u.handler,
+		"{\n  URL: %v\n  Handler: %v\n}", u.match, u.handler,
 	)
 }
 
@@ -187,44 +187,51 @@ func (GWV *WebServer) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 }
 
 func (GWV *WebServer) handle200(rw http.ResponseWriter, req *http.Request, resp string, route *HandlerWrapper, code int) {
+	var err error
 	rw.WriteHeader(code)
 	switch route.mime {
 	case HTML:
 		rw.Header().Set("Content-type", "text/html")
-		io.WriteString(rw, resp)
-		return
+		_, err = io.WriteString(rw, resp)
+		break
 	case PLAIN:
 		rw.Header().Set("Content-type", "text/plain")
-		io.WriteString(rw, resp)
-		return
+		_, err = io.WriteString(rw, resp)
+		break
 	case JSON:
 		rw.Header().Set("Content-type", "application/json")
-		json.NewEncoder(rw).Encode(map[string]string{
+		err = json.NewEncoder(rw).Encode(map[string]string{
 			"message": resp,
 		})
-		return
+		break
 	case AUTO:
 		reqstr := req.URL.Path[len(route.rawre):]
 		ctype := mime.TypeByExtension(filepath.Ext(reqstr))
 		rw.Header().Set("Content-Type", ctype)
-		io.WriteString(rw, resp)
-		return
+		_, err = io.WriteString(rw, resp)
+		break
 	case ICON:
 		rw.Header().Set("Content-Type", "image/x-icon")
-		io.WriteString(rw, resp)
-		return
+		_, err = io.WriteString(rw, resp)
+		break
 	case DOWNLOAD:
 		rw.Header().Set("Content-Type", "application/octet-stream")
 		rw.Header().Set("Content-Disposition", "attachment")
-		io.WriteString(rw, resp)
+		_, err = io.WriteString(rw, resp)
+		break
 	default:
 		if GWV.LogChan != nil {
 			GWV.LogChan <- fmt.Sprint("Unknown handler type: ", route.mime)
 		}
+		break
+	}
+	if err != nil && GWV.LogChan != nil {
+		GWV.LogChan <- fmt.Sprint("Error on WriteString to client: ", err)
 	}
 }
 
 func (GWV *WebServer) handle404(rw http.ResponseWriter, req *http.Request, code int) {
+	var err error
 	if GWV.LogChan != nil {
 		GWV.LogChan <- fmt.Sprint("404 on path:", req.URL.Path)
 	}
@@ -232,7 +239,10 @@ func (GWV *WebServer) handle404(rw http.ResponseWriter, req *http.Request, code 
 	if GWV.handler404 != nil {
 		resp, _ := GWV.handler404(rw, req)
 		rw.WriteHeader(code)
-		io.WriteString(rw, resp)
+		_, err = io.WriteString(rw, resp)
+		if err != nil && GWV.LogChan != nil {
+			GWV.LogChan <- fmt.Sprint("Error on WriteString to client at 404:", err)
+		}
 		return
 	}
 	http.NotFound(rw, req)
@@ -244,6 +254,7 @@ func (GWV *WebServer) Handler404(fn handler) {
 }
 
 func (GWV *WebServer) handle500(rw http.ResponseWriter, req *http.Request, code int) {
+	var err error
 	if GWV.LogChan != nil {
 		GWV.LogChan <- fmt.Sprint("500 on path:", req.URL.Path)
 	}
@@ -251,7 +262,10 @@ func (GWV *WebServer) handle500(rw http.ResponseWriter, req *http.Request, code 
 	if GWV.handler500 != nil {
 		resp, _ := GWV.handler500(rw, req)
 		rw.WriteHeader(code)
-		io.WriteString(rw, resp)
+		_, err = io.WriteString(rw, resp)
+		if err != nil && GWV.LogChan != nil {
+			GWV.LogChan <- fmt.Sprint("Error on WriteString to client at 404:", err)
+		}
 		return
 	}
 	http.Error(rw, "Internal Server Error", http.StatusInternalServerError)
@@ -278,19 +292,20 @@ func (GWV *WebServer) Start() {
 	}
 
 	go func() {
+		var err error
 		if GWV.LogChan != nil {
-			GWV.LogChan <- fmt.Sprintf("Serving HTTP on PORT: %s", GWV.port)
+			GWV.LogChan <- fmt.Sprintf("Serving HTTP on PORT: %v", GWV.port)
 		}
 
 		listener, err := net.Listen("tcp", httpServer.Addr)
 		for !GWV.Stop {
-			httpServer.Serve(listener)
-		}
-
-		if err != nil {
-			if GWV.LogChan != nil {
-				GWV.LogChan <- fmt.Sprint(err)
+			err = httpServer.Serve(listener)
+			if err != nil && GWV.LogChan != nil {
+				GWV.LogChan <- fmt.Sprint("can't start server:", err)
 			}
+		}
+		if err != nil && GWV.LogChan != nil {
+			GWV.LogChan <- fmt.Sprint("can't start server:", err)
 		}
 	}()
 
@@ -300,7 +315,10 @@ func (GWV *WebServer) Start() {
 			options["certPath"] = "ssl.cert"
 			options["keyPath"] = "ssl.key"
 			options["host"] = "*"
-			GenerateSSL(options)
+			err := GenerateSSL(options)
+			if err != nil && GWV.LogChan != nil {
+				GWV.LogChan <- fmt.Sprint("can't generate ssl cert:", err)
+			}
 		}
 
 		cert, err := tls.LoadX509KeyPair(GWV.sslcert, GWV.sslkey)
@@ -321,8 +339,9 @@ func (GWV *WebServer) Start() {
 		}
 
 		go func() {
+			var err error
 			if GWV.LogChan != nil {
-				GWV.LogChan <- fmt.Sprintf("Serving HTTPS on PORT: %s", GWV.secureport)
+				GWV.LogChan <- fmt.Sprintf("Serving HTTPS on PORT: %v", GWV.secureport)
 			}
 
 			if GWV.spdy {
@@ -331,13 +350,14 @@ func (GWV *WebServer) Start() {
 			listener, err := tls.Listen("tcp", httpsServer.Addr, httpsServer.TLSConfig)
 
 			for !GWV.Stop {
-				httpsServer.Serve(listener)
+				err = httpsServer.Serve(listener)
+				if err != nil && GWV.LogChan != nil {
+					GWV.LogChan <- fmt.Sprint("can't start server:", err)
+				}
 			}
 
-			if err != nil {
-				if GWV.LogChan != nil {
-					GWV.LogChan <- fmt.Sprint(err)
-				}
+			if err != nil && GWV.LogChan != nil {
+				GWV.LogChan <- fmt.Sprint("can't start server:", err)
 			}
 		}()
 	}

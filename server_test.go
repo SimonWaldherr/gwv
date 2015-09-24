@@ -157,7 +157,7 @@ func Test_LogChan(t *testing.T) {
 	go func() {
 		for {
 			msg := <-HTTPD.LogChan
-			fmt.Println(msg)
+			t.Logf("%v\n", msg)
 		}
 	}()
 
@@ -167,6 +167,8 @@ func Test_LogChan(t *testing.T) {
 
 	HTTPRequest("http://localhost:8080/tea")
 	HTTPRequest("http://localhost:8080/")
+	HTTPRequest("http://localhost:8080/favicon.ico")
+	time.Sleep(50 * time.Millisecond)
 	HTTPRequest("http://localhost:8080/tea")
 
 	HTTPD.Stop = true
