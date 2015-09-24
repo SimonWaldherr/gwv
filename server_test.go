@@ -49,8 +49,24 @@ func Index(rw http.ResponseWriter, req *http.Request) (string, int) {
 	return "Do or do not, there is no try", http.StatusOK
 }
 
+var messages = make(chan string)
+
 func Teapot(rw http.ResponseWriter, req *http.Request) (string, int) {
-	return "Remember... the Force will be with you, always", http.StatusTeapot
+	cn, ok := rw.(http.CloseNotifier)
+	if !ok {
+		return "cannot stream", http.StatusInternalServerError
+	}
+	go func() {
+		time.Sleep(1 * time.Second)
+		messages <- "Remember... the Force will be with you, always"
+	}()
+	select {
+	case <-cn.CloseNotify():
+		fmt.Println("done: closed connection")
+		return "", http.StatusInternalServerError
+	case msg := <-messages:
+		return msg, http.StatusTeapot
+	}
 }
 
 func Golang(rw http.ResponseWriter, req *http.Request) (string, int) {
