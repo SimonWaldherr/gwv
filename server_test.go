@@ -20,7 +20,11 @@ func HTTPRequest(url string) string {
 	tr := &http.Transport{
 		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
 	}
-	client := &http.Client{Transport: tr}
+	timeout := time.Duration(1 * time.Second)
+	client := &http.Client{
+		Transport: tr,
+		Timeout: timeout,
+	}
 	bodymsg := "lorem ipsum"
 	body := bytes.NewBufferString(bodymsg)
 	length := strconv.Itoa(len(bodymsg))
@@ -134,7 +138,8 @@ func Test_Realtime(t *testing.T) {
 	HTTPD.Start()
 	t.Logf("started")
 
-	HTTPRequest("http://localhost:8080/sse")
+	HTTPRequest("http://localhost:8081/sse")
+	HTTPRequest("http://localhost:8081/err")
 
 	HTTPD.Stop = true
 
@@ -165,11 +170,11 @@ func Test_LogChan(t *testing.T) {
 	HTTPD.Start()
 	t.Logf("started")
 
-	HTTPRequest("http://localhost:8080/tea")
-	HTTPRequest("http://localhost:8080/")
-	HTTPRequest("http://localhost:8080/favicon.ico")
+	HTTPRequest("http://localhost:8082/tea")
+	HTTPRequest("http://localhost:8082/")
+	HTTPRequest("http://localhost:8082/err")
 	time.Sleep(50 * time.Millisecond)
-	HTTPRequest("http://localhost:8080/tea")
+	HTTPRequest("http://localhost:8082/tea")
 
 	HTTPD.Stop = true
 
