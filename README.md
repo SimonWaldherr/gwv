@@ -4,7 +4,8 @@ Golang Web Valve - to be connected to your series of tubes
 [![Build Status](https://travis-ci.org/SimonWaldherr/gwv.svg?branch=master)](https://travis-ci.org/SimonWaldherr/gwv) 
 [![Build status](https://img.shields.io/appveyor/ci/SimonWaldherr/gwv.svg)](https://ci.appveyor.com/project/SimonWaldherr/gwv/branch/master) 
 [![Coverage Status](https://coveralls.io/repos/SimonWaldherr/gwv/badge.svg?branch=master&service=github)](https://coveralls.io/github/SimonWaldherr/gwv?branch=master) 
-[![codecov.io](http://codecov.io/github/SimonWaldherr/gwv/coverage.svg?branch=master)](http://codecov.io/github/SimonWaldherr/gwv?branch=master)
+[![codecov.io](http://codecov.io/github/SimonWaldherr/gwv/coverage.svg?branch=master)](http://codecov.io/github/SimonWaldherr/gwv?branch=master) 
+[![GoDoc](https://img.shields.io/badge/godoc-reference-blue.svg)](https://godoc.org/github.com/SimonWaldherr/gwv/)  
 
 ## install
 
