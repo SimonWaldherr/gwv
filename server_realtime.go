@@ -34,7 +34,7 @@ func (GWV *WebServer) InitRealtimeHub() *Connections {
 				for s := range hub.clients {
 					s <- msg
 				}
-				GWV.logChannelHandler(fmt.Sprint("Broadcast \"%v\" to %d clients", msg, len(hub.clients)))
+				GWV.logChannelHandler(fmt.Sprintf("Broadcast \"%v\" to %d clients", msg, len(hub.clients)))
 			}
 		}
 	}()

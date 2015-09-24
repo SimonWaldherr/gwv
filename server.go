@@ -200,7 +200,7 @@ func (GWV *WebServer) Start() {
 
 	go func() {
 		var err error
-		GWV.logChannelHandler(fmt.Sprint("Serving HTTP on PORT: %v", GWV.port))
+		GWV.logChannelHandler(fmt.Sprint("Serving HTTP on PORT: ", GWV.port))
 
 		listener, err := net.Listen("tcp", httpServer.Addr)
 		for !GWV.Stop {
@@ -235,7 +235,7 @@ func (GWV *WebServer) Start() {
 
 		go func() {
 			var err error
-			GWV.logChannelHandler(fmt.Sprintf("Serving HTTPS on PORT: %v", GWV.secureport))
+			GWV.logChannelHandler(fmt.Sprint("Serving HTTPS on PORT: ", GWV.secureport))
 
 			if GWV.spdy {
 				http2.ConfigureServer(&httpsServer, &http2.Server{})
