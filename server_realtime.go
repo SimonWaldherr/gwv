@@ -35,7 +35,7 @@ func (GWV *WebServer) InitRealtimeHub() *Connections {
 					GWV.LogChan <- fmt.Sprint("Removed client")
 				}
 			case msg := <-hub.messages:
-				for s, _ := range hub.clients {
+				for s := range hub.clients {
 					s <- msg
 				}
 				if GWV.LogChan != nil {
@@ -47,7 +47,7 @@ func (GWV *WebServer) InitRealtimeHub() *Connections {
 	return hub
 }
 
-func SSE(re string, hub *Connections, ch chan string) *handlerWrapper {
+func SSE(re string, hub *Connections, ch chan string) *HandlerWrapper {
 	return handlerify(re, func(rw http.ResponseWriter, req *http.Request) (string, int) {
 		f, ok := rw.(http.Flusher)
 		if !ok {

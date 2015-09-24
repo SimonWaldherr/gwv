@@ -33,7 +33,7 @@ const (
 
 type handler func(http.ResponseWriter, *http.Request) (string, int)
 
-type handlerWrapper struct {
+type HandlerWrapper struct {
 	match   *regexp.Regexp
 	handler handler
 	mime    mimeCtrl
@@ -46,7 +46,7 @@ type WebServer struct {
 	sslkey     string
 	sslcert    string
 	spdy       bool
-	routes     []*handlerWrapper
+	routes     []*HandlerWrapper
 	timeout    time.Duration
 	handler404 handler
 	handler500 handler
@@ -55,16 +55,16 @@ type WebServer struct {
 	LogChan    chan string
 }
 
-func (u *handlerWrapper) String() string {
+func (u *HandlerWrapper) String() string {
 	return fmt.Sprintf(
 		"{\n  URL: %s\n  Handler: %s\n}", u.match, u.handler,
 	)
 }
 
-func handlerify(re string, handler handler, mime mimeCtrl) *handlerWrapper {
+func handlerify(re string, handler handler, mime mimeCtrl) *HandlerWrapper {
 	match := regexp.MustCompile(re)
 
-	return &handlerWrapper{
+	return &HandlerWrapper{
 		match:   match,
 		handler: handler,
 		mime:    mime,
@@ -72,15 +72,15 @@ func handlerify(re string, handler handler, mime mimeCtrl) *handlerWrapper {
 	}
 }
 
-func URL(re string, view handler, handler mimeCtrl) *handlerWrapper {
+func URL(re string, view handler, handler mimeCtrl) *HandlerWrapper {
 	return handlerify(re, view, handler)
 }
 
-func Download(re string, view handler) *handlerWrapper {
+func Download(re string, view handler) *HandlerWrapper {
 	return handlerify(re, view, DOWNLOAD)
 }
 
-func StaticFiles(reqpath string, paths ...string) *handlerWrapper {
+func StaticFiles(reqpath string, paths ...string) *HandlerWrapper {
 	return handlerify(reqpath, func(rw http.ResponseWriter, req *http.Request) (string, int) {
 		filename := req.URL.Path[len(reqpath):]
 		for _, path := range paths {
@@ -97,7 +97,7 @@ func StaticFiles(reqpath string, paths ...string) *handlerWrapper {
 	}, AUTO)
 }
 
-func Favicon(path string) *handlerWrapper {
+func Favicon(path string) *HandlerWrapper {
 	return handlerify("^/favicon.ico$",
 		func(rw http.ResponseWriter, req *http.Request) (string, int) {
 			data, err := file.Read(path)
@@ -108,21 +108,21 @@ func Favicon(path string) *handlerWrapper {
 		}, ICON)
 }
 
-func Redirect(path, destination string, code int) *handlerWrapper {
+func Redirect(path, destination string, code int) *HandlerWrapper {
 	return handlerify(path,
 		func(rw http.ResponseWriter, req *http.Request) (string, int) {
 			return destination, code
 		}, REDIRECT)
 }
 
-func Robots(data string) *handlerWrapper {
+func Robots(data string) *HandlerWrapper {
 	return handlerify("^/robots.txt$",
 		func(rw http.ResponseWriter, req *http.Request) (string, int) {
 			return data, http.StatusOK
 		}, PLAIN)
 }
 
-func Humans(data string) *handlerWrapper {
+func Humans(data string) *HandlerWrapper {
 	return handlerify("^/humans.txt$",
 		func(rw http.ResponseWriter, req *http.Request) (string, int) {
 			return data, http.StatusOK
@@ -132,7 +132,7 @@ func Humans(data string) *handlerWrapper {
 func NewWebServer(port int, timeout time.Duration) *WebServer {
 	return &WebServer{
 		port:    port,
-		routes:  make([]*handlerWrapper, 0),
+		routes:  make([]*HandlerWrapper, 0),
 		timeout: timeout,
 	}
 }
@@ -148,7 +148,7 @@ func (GWV *WebServer) ConfigSSL(port int, sslkey string, sslcert string, spdy bo
 	GWV.spdy = spdy
 }
 
-func (GWV *WebServer) URLhandler(patterns ...*handlerWrapper) {
+func (GWV *WebServer) URLhandler(patterns ...*HandlerWrapper) {
 	for _, url := range patterns {
 		GWV.routes = append(GWV.routes, url)
 	}
@@ -186,7 +186,7 @@ func (GWV *WebServer) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	GWV.handle404(rw, req, http.StatusNotFound)
 }
 
-func (GWV *WebServer) handle200(rw http.ResponseWriter, req *http.Request, resp string, route *handlerWrapper, code int) {
+func (GWV *WebServer) handle200(rw http.ResponseWriter, req *http.Request, resp string, route *HandlerWrapper, code int) {
 	rw.WriteHeader(code)
 	switch route.mime {
 	case HTML:
@@ -234,10 +234,9 @@ func (GWV *WebServer) handle404(rw http.ResponseWriter, req *http.Request, code 
 		rw.WriteHeader(code)
 		io.WriteString(rw, resp)
 		return
-	} else {
-		http.NotFound(rw, req)
-		return
 	}
+	http.NotFound(rw, req)
+	return
 }
 
 func (GWV *WebServer) Handler404(fn handler) {
@@ -254,10 +253,9 @@ func (GWV *WebServer) handle500(rw http.ResponseWriter, req *http.Request, code 
 		rw.WriteHeader(code)
 		io.WriteString(rw, resp)
 		return
-	} else {
-		http.Error(rw, "Internal Server Error", http.StatusInternalServerError)
-		return
 	}
+	http.Error(rw, "Internal Server Error", http.StatusInternalServerError)
+	return
 }
 
 func (GWV *WebServer) Handler500(fn handler) {
