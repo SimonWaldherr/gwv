@@ -10,6 +10,7 @@ before_install:
 - go get github.com/axw/gocov/gocov
 - go get github.com/mattn/goveralls
 - go get golang.org/x/tools/cmd/cover
+- pip install --user codecov
 install:
 - go get -t .
 - go get -t simonwaldherr.de/go/gwv
@@ -24,6 +25,7 @@ script:
 - wget --post-file=coverage.html -q -O- "https://simonwaldherr.de/gocover/?repo=gwv&mode=save&key=$UPLOADSECRET&pull=$TRAVIS_PULL_REQUEST"
 after_success:
 - cp coverprofile coverage.log
+- codecov
 - bash <(curl -s https://raw.githubusercontent.com/codecov/codecov-bash/master/codecov)
 notifications: 
   email: 
