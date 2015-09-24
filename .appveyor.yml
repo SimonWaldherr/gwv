@@ -15,7 +15,7 @@ notifications:
   on_build_failure: true
   on_build_status_changed: true
 
-clone_folder: c:\gopath\src\github.com\simonwaldherr\golibs
+clone_folder: c:\gopath\src\github.com\simonwaldherr\gwv
 
 environment:
   GOPATH: c:\gopath
