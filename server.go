@@ -200,20 +200,14 @@ func (GWV *WebServer) Start() {
 
 	go func() {
 		var err error
-		if GWV.LogChan != nil {
-			GWV.LogChan <- fmt.Sprintf("Serving HTTP on PORT: %v", GWV.port)
-		}
+		GWV.logChannelHandler(fmt.Sprint("Serving HTTP on PORT: %v", GWV.port))
 
 		listener, err := net.Listen("tcp", httpServer.Addr)
 		for !GWV.Stop {
 			err = httpServer.Serve(listener)
-			if err != nil && GWV.LogChan != nil {
-				GWV.LogChan <- fmt.Sprint("can't start server:", err)
-			}
+			GWV.extendedErrorHandler("can't start server:", err)
 		}
-		if err != nil && GWV.LogChan != nil {
-			GWV.LogChan <- fmt.Sprint("can't start server:", err)
-		}
+		GWV.extendedErrorHandler("can't start server:", err)
 	}()
 
 	if GWV.secureport != 0 {
@@ -223,17 +217,11 @@ func (GWV *WebServer) Start() {
 			options["keyPath"] = "ssl.key"
 			options["host"] = "*"
 			err := GenerateSSL(options)
-			if err != nil && GWV.LogChan != nil {
-				GWV.LogChan <- fmt.Sprint("can't generate ssl cert:", err)
-			}
+			GWV.extendedErrorHandler("can't generate ssl cert:", err)
 		}
 
 		cert, err := tls.LoadX509KeyPair(GWV.sslcert, GWV.sslkey)
-		if err != nil {
-			if GWV.LogChan != nil {
-				GWV.LogChan <- fmt.Sprint(err)
-			}
-		}
+		GWV.extendedErrorHandler("can't load key pair: ", err)
 
 		httpsServer := http.Server{
 			Addr:        ":" + as.String(GWV.secureport),
@@ -247,9 +235,7 @@ func (GWV *WebServer) Start() {
 
 		go func() {
 			var err error
-			if GWV.LogChan != nil {
-				GWV.LogChan <- fmt.Sprintf("Serving HTTPS on PORT: %v", GWV.secureport)
-			}
+			GWV.logChannelHandler(fmt.Sprintf("Serving HTTPS on PORT: %v", GWV.secureport))
 
 			if GWV.spdy {
 				http2.ConfigureServer(&httpsServer, &http2.Server{})
@@ -258,14 +244,10 @@ func (GWV *WebServer) Start() {
 
 			for !GWV.Stop {
 				err = httpsServer.Serve(listener)
-				if err != nil && GWV.LogChan != nil {
-					GWV.LogChan <- fmt.Sprint("can't start server:", err)
-				}
+				GWV.extendedErrorHandler("can't start server:", err)
 			}
 
-			if err != nil && GWV.LogChan != nil {
-				GWV.LogChan <- fmt.Sprint("can't start server:", err)
-			}
+			GWV.extendedErrorHandler("can't start server:", err)
 		}()
 	}
 }

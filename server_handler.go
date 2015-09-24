@@ -43,29 +43,21 @@ func (GWV *WebServer) handle200(rw http.ResponseWriter, req *http.Request, resp 
 		_, err = io.WriteString(rw, resp)
 		break
 	default:
-		if GWV.LogChan != nil {
-			GWV.LogChan <- fmt.Sprint("Unknown handler type: ", route.mime)
-		}
+		GWV.logChannelHandler(fmt.Sprint("Unknown handler type: ", route.mime))
 		break
 	}
-	if err != nil && GWV.LogChan != nil {
-		GWV.LogChan <- fmt.Sprint("Error on WriteString to client: ", err)
-	}
+	GWV.extendedErrorHandler("Error on WriteString to client: ", err)
 }
 
 func (GWV *WebServer) handle404(rw http.ResponseWriter, req *http.Request, code int) {
 	var err error
-	if GWV.LogChan != nil {
-		GWV.LogChan <- fmt.Sprint("404 on path:", req.URL.Path)
-	}
+	GWV.logChannelHandler(fmt.Sprint("404 on path:", req.URL.Path))
 
 	if GWV.handler404 != nil {
 		resp, _ := GWV.handler404(rw, req)
 		rw.WriteHeader(code)
 		_, err = io.WriteString(rw, resp)
-		if err != nil && GWV.LogChan != nil {
-			GWV.LogChan <- fmt.Sprint("Error on WriteString to client at 404:", err)
-		}
+		GWV.extendedErrorHandler("Error on WriteString to client at 404:", err)
 		return
 	}
 	http.NotFound(rw, req)
@@ -78,17 +70,13 @@ func (GWV *WebServer) Handler404(fn handler) {
 
 func (GWV *WebServer) handle500(rw http.ResponseWriter, req *http.Request, code int) {
 	var err error
-	if GWV.LogChan != nil {
-		GWV.LogChan <- fmt.Sprint("500 on path:", req.URL.Path)
-	}
+	GWV.logChannelHandler(fmt.Sprint("500 on path:", req.URL.Path))
 
 	if GWV.handler500 != nil {
 		resp, _ := GWV.handler500(rw, req)
 		rw.WriteHeader(code)
 		_, err = io.WriteString(rw, resp)
-		if err != nil && GWV.LogChan != nil {
-			GWV.LogChan <- fmt.Sprint("Error on WriteString to client at 404:", err)
-		}
+		GWV.extendedErrorHandler("Error on WriteString to client at 404:", err)
 		return
 	}
 	http.Error(rw, "Internal Server Error", http.StatusInternalServerError)

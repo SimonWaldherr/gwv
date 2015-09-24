@@ -26,21 +26,15 @@ func (GWV *WebServer) InitRealtimeHub() *Connections {
 			select {
 			case s := <-hub.addClient:
 				hub.clients[s] = true
-				if GWV.LogChan != nil {
-					GWV.LogChan <- fmt.Sprint("Added new client")
-				}
+				GWV.logChannelHandler("Added new client")
 			case s := <-hub.removeClient:
 				delete(hub.clients, s)
-				if GWV.LogChan != nil {
-					GWV.LogChan <- fmt.Sprint("Removed client")
-				}
+				GWV.logChannelHandler("Removed client")
 			case msg := <-hub.messages:
 				for s := range hub.clients {
 					s <- msg
 				}
-				if GWV.LogChan != nil {
-					GWV.LogChan <- fmt.Sprintf("Broadcast \"%v\" to %d clients", msg, len(hub.clients))
-				}
+				GWV.logChannelHandler(fmt.Sprint("Broadcast \"%v\" to %d clients", msg, len(hub.clients)))
 			}
 		}
 	}()
