@@ -192,6 +192,11 @@ func CheckSSL(certPath string, keyPath string) error {
 }
 
 func (GWV *WebServer) Start() {
+	defer func() {
+		if r := recover(); r != nil {
+			GWV.logChannelHandler(fmt.Sprint("Recovered in f", r))
+		}
+	}()
 	httpServer := http.Server{
 		Addr:        ":" + as.String(GWV.port),
 		Handler:     GWV,

@@ -23,7 +23,7 @@ func HTTPRequest(url string) string {
 	timeout := time.Duration(1 * time.Second)
 	client := &http.Client{
 		Transport: tr,
-		Timeout: timeout,
+		Timeout:   timeout,
 	}
 	bodymsg := "lorem ipsum"
 	body := bytes.NewBufferString(bodymsg)
@@ -175,6 +175,37 @@ func Test_LogChan(t *testing.T) {
 	HTTPRequest("http://localhost:8082/err")
 	time.Sleep(50 * time.Millisecond)
 	HTTPRequest("http://localhost:8082/tea")
+
+	HTTPD.Stop = true
+
+	t.Logf("stopping")
+	HTTPD.WG.Wait()
+	t.Logf("stopped")
+}
+
+func Test_ServerPanicRecover(t *testing.T) {
+	HTTPD := NewWebServer(8083, 30)
+
+	HTTPD.URLhandler(
+		URL("^/test/$", func(rw http.ResponseWriter, req *http.Request) (string, int) {
+			t.Logf("everything is fine")
+			return "everything is fine", http.StatusOK
+		}, HTML),
+		URL("^/$", func(rw http.ResponseWriter, req *http.Request) (string, int) {
+			panic("panic")
+			return "panic", http.StatusInternalServerError
+		}, HTML),
+	)
+
+	t.Logf("starting")
+	HTTPD.Start()
+	t.Logf("started")
+
+	time.Sleep(50 * time.Millisecond)
+	HTTPRequest("http://localhost:8083/test/")
+	HTTPRequest("http://localhost:8083/")
+	HTTPRequest("http://localhost:8083/test/")
+	time.Sleep(50 * time.Millisecond)
 
 	HTTPD.Stop = true
 

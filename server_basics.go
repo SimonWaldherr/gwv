@@ -12,6 +12,7 @@ func (GWV *WebServer) extendedErrorHandler(msg string, err error) {
 		} else {
 			log.Print(msg, err)
 		}
+		panic(err)
 	}
 }
 
