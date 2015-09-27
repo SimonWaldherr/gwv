@@ -121,11 +121,51 @@ func Test_Webserver(t *testing.T) {
 	t.Logf("stopped")
 }
 
+func Test_MimeTypes(t *testing.T) {
+	var x mimeCtrl = 9
+	HTTPD := NewWebServer(8081, 60)
+
+	HTTPD.URLhandler(
+		URL("^/HTML$", func(rw http.ResponseWriter, req *http.Request) (string, int) {
+			return "HTML", http.StatusOK
+		}, HTML),
+		URL("^/PLAIN$", func(rw http.ResponseWriter, req *http.Request) (string, int) {
+			return "PLAIN", http.StatusOK
+		}, PLAIN),
+		URL("^/AUTO$", func(rw http.ResponseWriter, req *http.Request) (string, int) {
+			return "AUTO", http.StatusOK
+		}, AUTO),
+		URL("^/DOWNLOAD$", func(rw http.ResponseWriter, req *http.Request) (string, int) {
+			return "DOWNLOAD", http.StatusOK
+		}, DOWNLOAD),
+		URL("^/nil$", func(rw http.ResponseWriter, req *http.Request) (string, int) {
+			return "nil", http.StatusOK
+		}, x),
+	)
+
+	HTTPD.Start()
+
+	t.Logf("HTML")
+	HTTPRequest("http://localhost:8081/HTML")
+	t.Logf("PLAIN")
+	HTTPRequest("http://localhost:8081/PLAIN")
+	t.Logf("AUTO")
+	HTTPRequest("http://localhost:8081/AUTO")
+	t.Logf("DOWNLOAD")
+	HTTPRequest("http://localhost:8081/DOWNLOAD")
+	t.Logf("nil")
+	HTTPRequest("http://localhost:8081/nil")
+	t.Logf("stopping")
+
+	HTTPD.Stop()
+	HTTPD.WG.Wait()
+}
+
 var messageChannel = make(chan string, 16)
 var hub *Connections
 
 func Test_Realtime(t *testing.T) {
-	HTTPD := NewWebServer(8081, 60)
+	HTTPD := NewWebServer(8082, 60)
 
 	hub = HTTPD.InitRealtimeHub()
 
@@ -138,8 +178,8 @@ func Test_Realtime(t *testing.T) {
 	HTTPD.Start()
 	t.Logf("started")
 
-	HTTPRequest("http://localhost:8081/sse")
-	HTTPRequest("http://localhost:8081/err")
+	HTTPRequest("http://localhost:8082/sse")
+	HTTPRequest("http://localhost:8082/err")
 
 	HTTPD.Stop()
 
@@ -149,7 +189,7 @@ func Test_Realtime(t *testing.T) {
 }
 
 func Test_LogChan(t *testing.T) {
-	HTTPD := NewWebServer(8082, 60)
+	HTTPD := NewWebServer(8083, 60)
 
 	hub = HTTPD.InitRealtimeHub()
 
@@ -170,11 +210,11 @@ func Test_LogChan(t *testing.T) {
 	HTTPD.Start()
 	t.Logf("started")
 
-	HTTPRequest("http://localhost:8082/tea")
-	HTTPRequest("http://localhost:8082/")
-	HTTPRequest("http://localhost:8082/err")
+	HTTPRequest("http://localhost:8083/tea")
+	HTTPRequest("http://localhost:8083/")
+	HTTPRequest("http://localhost:8083/err")
 	time.Sleep(50 * time.Millisecond)
-	HTTPRequest("http://localhost:8082/tea")
+	HTTPRequest("http://localhost:8083/tea")
 
 	HTTPD.Stop()
 
@@ -184,7 +224,7 @@ func Test_LogChan(t *testing.T) {
 }
 
 func Test_ServerPanicRecover(t *testing.T) {
-	HTTPD := NewWebServer(8083, 30)
+	HTTPD := NewWebServer(8084, 30)
 
 	HTTPD.URLhandler(
 		URL("^/test/$", func(rw http.ResponseWriter, req *http.Request) (string, int) {
@@ -202,9 +242,9 @@ func Test_ServerPanicRecover(t *testing.T) {
 	t.Logf("started")
 
 	time.Sleep(50 * time.Millisecond)
-	HTTPRequest("http://localhost:8083/test/")
-	HTTPRequest("http://localhost:8083/")
-	HTTPRequest("http://localhost:8083/test/")
+	HTTPRequest("http://localhost:8084/test/")
+	HTTPRequest("http://localhost:8084/")
+	HTTPRequest("http://localhost:8084/test/")
 	time.Sleep(50 * time.Millisecond)
 
 	HTTPD.Stop()
@@ -215,7 +255,7 @@ func Test_ServerPanicRecover(t *testing.T) {
 }
 
 func Test_ServerStopByRequest(t *testing.T) {
-	HTTPD := NewWebServer(8084, 30)
+	HTTPD := NewWebServer(8085, 30)
 
 	HTTPD.URLhandler(
 		URL("^/stop/$", func(rw http.ResponseWriter, req *http.Request) (string, int) {
@@ -235,14 +275,43 @@ func Test_ServerStopByRequest(t *testing.T) {
 	t.Logf("started")
 
 	time.Sleep(50 * time.Millisecond)
-	HTTPRequest("http://localhost:8084/")
-	go HTTPRequest("http://localhost:8084/stop/")
-	go HTTPRequest("http://localhost:8084/stop/")
-	go HTTPRequest("http://localhost:8084/stop/")
+	HTTPRequest("http://localhost:8085/")
+	go HTTPRequest("http://localhost:8085/stop/")
+	go HTTPRequest("http://localhost:8085/stop/")
+	go HTTPRequest("http://localhost:8085/stop/")
 
 	time.Sleep(50 * time.Millisecond)
 	HTTPD.WG.Wait()
 	t.Logf("stopped")
+}
+
+func Test_StatusCodes(t *testing.T) {
+	HTTPD := NewWebServer(8086, 10)
+
+	HTTPD.URLhandler(
+		URL("^/200$", func(rw http.ResponseWriter, req *http.Request) (string, int) {
+			return "HTML", 200
+		}, PLAIN),
+		URL("^/300$", func(rw http.ResponseWriter, req *http.Request) (string, int) {
+			return "300", 300
+		}, PLAIN),
+		URL("^/400$", func(rw http.ResponseWriter, req *http.Request) (string, int) {
+			return "400", 400
+		}, PLAIN),
+		URL("^/500$", func(rw http.ResponseWriter, req *http.Request) (string, int) {
+			return "500", 500
+		}, PLAIN),
+	)
+
+	HTTPD.Start()
+
+	HTTPRequest("http://localhost:8086/200")
+	HTTPRequest("http://localhost:8086/300")
+	HTTPRequest("http://localhost:8086/400")
+	HTTPRequest("http://localhost:8086/500")
+
+	HTTPD.Stop()
+	HTTPD.WG.Wait()
 }
 
 func Test_SSL(t *testing.T) {
