@@ -1,11 +1,11 @@
 os:
+- osx
 - linux
 language: go
 sudo: false
 go:
 - 1.4.2
 - 1.5
-- tip
 before_install:
 - go get github.com/axw/gocov/gocov
 - go get github.com/mattn/goveralls

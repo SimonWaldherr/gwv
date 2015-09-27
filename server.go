@@ -211,9 +211,9 @@ func (GWV *WebServer) Start() {
 		listener, err := net.Listen("tcp", httpServer.Addr)
 		for !GWV.stop {
 			err = httpServer.Serve(listener)
-			GWV.extendedErrorHandler("can't start server:", err)
+			GWV.extendedErrorHandler("can't start server:", err, true)
 		}
-		GWV.extendedErrorHandler("can't start server:", err)
+		GWV.extendedErrorHandler("can't start server:", err, true)
 	}()
 
 	if GWV.secureport != 0 {
@@ -223,11 +223,11 @@ func (GWV *WebServer) Start() {
 			options["keyPath"] = "ssl.key"
 			options["host"] = "*"
 			err := GenerateSSL(options)
-			GWV.extendedErrorHandler("can't generate ssl cert:", err)
+			GWV.extendedErrorHandler("can't generate ssl cert:", err, true)
 		}
 
 		cert, err := tls.LoadX509KeyPair(GWV.sslcert, GWV.sslkey)
-		GWV.extendedErrorHandler("can't load key pair: ", err)
+		GWV.extendedErrorHandler("can't load key pair: ", err, true)
 
 		httpsServer := http.Server{
 			Addr:        ":" + as.String(GWV.secureport),
@@ -250,10 +250,10 @@ func (GWV *WebServer) Start() {
 
 			for !GWV.stop {
 				err = httpsServer.Serve(listener)
-				GWV.extendedErrorHandler("can't start server:", err)
+				GWV.extendedErrorHandler("can't start server:", err, true)
 			}
 
-			GWV.extendedErrorHandler("can't start server:", err)
+			GWV.extendedErrorHandler("can't start server:", err, true)
 		}()
 	}
 }

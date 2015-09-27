@@ -46,7 +46,7 @@ func (GWV *WebServer) handle200(rw http.ResponseWriter, req *http.Request, resp 
 		GWV.logChannelHandler(fmt.Sprint("Unknown handler type: ", route.mime))
 		break
 	}
-	GWV.extendedErrorHandler("Error on WriteString to client: ", err)
+	GWV.extendedErrorHandler("Error on WriteString to client: ", err, false)
 }
 
 func (GWV *WebServer) handle404(rw http.ResponseWriter, req *http.Request, code int) {
@@ -57,7 +57,7 @@ func (GWV *WebServer) handle404(rw http.ResponseWriter, req *http.Request, code 
 		resp, _ := GWV.handler404(rw, req)
 		rw.WriteHeader(code)
 		_, err = io.WriteString(rw, resp)
-		GWV.extendedErrorHandler("Error on WriteString to client at 404:", err)
+		GWV.extendedErrorHandler("Error on WriteString to client at 404:", err, false)
 		return
 	}
 	http.NotFound(rw, req)
@@ -76,7 +76,7 @@ func (GWV *WebServer) handle500(rw http.ResponseWriter, req *http.Request, code 
 		resp, _ := GWV.handler500(rw, req)
 		rw.WriteHeader(code)
 		_, err = io.WriteString(rw, resp)
-		GWV.extendedErrorHandler("Error on WriteString to client at 404:", err)
+		GWV.extendedErrorHandler("Error on WriteString to client at 404:", err, false)
 		return
 	}
 	http.Error(rw, "Internal Server Error", http.StatusInternalServerError)

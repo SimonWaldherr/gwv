@@ -98,6 +98,12 @@ func Test_Webserver(t *testing.T) {
 		URL("^/golang/$", Golang, HTML),
 		URL("^/tea$", Teapot, HTML),
 		URL("^/$", Index, HTML),
+		URL("^/500$", func(rw http.ResponseWriter, req *http.Request) (string, int) {
+			return "500", 500
+		}, PLAIN),
+		URL("^/404$", func(rw http.ResponseWriter, req *http.Request) (string, int) {
+			return "404", 404
+		}, PLAIN),
 	)
 
 	HTTPD.Handler404(H404)
@@ -112,6 +118,8 @@ func Test_Webserver(t *testing.T) {
 	HTTPRequest("https://localhost:4443/")
 	HTTPRequest("http://localhost:8080/favicon.ico")
 	HTTPRequest("http://localhost:8080/go/")
+	HTTPRequest("http://localhost:8080/404")
+	HTTPRequest("http://localhost:8080/500")
 	time.Sleep(50 * time.Millisecond)
 
 	HTTPD.Stop()
