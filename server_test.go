@@ -20,7 +20,7 @@ func HTTPRequest(url string) string {
 	tr := &http.Transport{
 		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
 	}
-	timeout := time.Duration(1 * time.Second)
+	timeout := time.Duration(2 * time.Second)
 	client := &http.Client{
 		Transport: tr,
 		Timeout:   timeout,
@@ -210,6 +210,37 @@ func Test_ServerPanicRecover(t *testing.T) {
 	HTTPD.Stop = true
 
 	t.Logf("stopping")
+	HTTPD.WG.Wait()
+	t.Logf("stopped")
+}
+
+func Test_ServerStopByRequest(t *testing.T) {
+	HTTPD := NewWebServer(8084, 30)
+
+	HTTPD.URLhandler(
+		URL("^/stop/$", func(rw http.ResponseWriter, req *http.Request) (string, int) {
+			t.Logf("stopping")
+			time.Sleep(1 * time.Second)
+			HTTPD.Stop = true
+			return "stopping", http.StatusOK
+		}, HTML),
+		URL("^/$", func(rw http.ResponseWriter, req *http.Request) (string, int) {
+			time.Sleep(50 * time.Millisecond)
+			return "", http.StatusOK
+		}, HTML),
+	)
+
+	t.Logf("starting")
+	HTTPD.Start()
+	t.Logf("started")
+
+	time.Sleep(50 * time.Millisecond)
+	HTTPRequest("http://localhost:8084/")
+	go HTTPRequest("http://localhost:8084/stop/")
+	go HTTPRequest("http://localhost:8084/stop/")
+	go HTTPRequest("http://localhost:8084/stop/")
+
+	time.Sleep(50 * time.Millisecond)
 	HTTPD.WG.Wait()
 	t.Logf("stopped")
 }
