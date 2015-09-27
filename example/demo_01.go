@@ -1,3 +1,5 @@
+// +build local
+
 package main
 
 import (
@@ -53,7 +55,7 @@ func main() {
 	fmt.Println("DIR 1:", gopath.WD())
 	fmt.Println("DIR 2:", dir)
 	HTTPD := gwv.NewWebServer(8080, 60)
-	HTTPD.ConfigSSL(4443, "ssl.key", "ssl.cert", true)
+	HTTPD.ConfigSSL(4443, filepath.Join(dir, "..", "ssl.key"), filepath.Join(dir, "..", "ssl.cert"), true)
 
 	HTTPD.URLhandler(
 		gwv.Robots(as.String(cachedfile.Read(filepath.Join(dir, "..", "static", "robots.txt")))),
