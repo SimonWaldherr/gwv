@@ -3,7 +3,7 @@ package gwv
 import (
 	"crypto/tls"
 	"fmt"
-	"github.com/bradfitz/http2"
+	"golang.org/x/net/http2"
 	"net"
 	"net/http"
 	"path/filepath"

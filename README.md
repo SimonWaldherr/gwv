@@ -31,5 +31,5 @@ it depends on:
 
 * [Golang Standard library](https://golang.org/pkg/#stdlib) ([BSD LICENSE](https://golang.org/LICENSE))
 * [SimonWaldherr/golibs](https://github.com/SimonWaldherr/golibs) ([MIT LICENSE](https://github.com/SimonWaldherr/golibs/blob/master/LICENSE))
-* [bradfitz/http2](https://github.com/bradfitz/http2) ([BSD LICENSE](https://github.com/bradfitz/http2/blob/master/LICENSE))
+* [bradfitz/http2](https://godoc.org/golang.org/x/net/http2) ([BSD LICENSE](https://github.com/bradfitz/http2/blob/master/LICENSE))
 
