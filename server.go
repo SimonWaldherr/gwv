@@ -48,7 +48,7 @@ type WebServer struct {
 	handler404 handler
 	handler500 handler
 	WG         sync.WaitGroup
-	Stop       bool
+	stop       bool
 	LogChan    chan string
 }
 
@@ -192,6 +192,7 @@ func CheckSSL(certPath string, keyPath string) error {
 }
 
 func (GWV *WebServer) Start() {
+	GWV.WG.Add(1)
 	defer func() {
 		if r := recover(); r != nil {
 			GWV.logChannelHandler(fmt.Sprint("Recovered in f", r))
@@ -208,7 +209,7 @@ func (GWV *WebServer) Start() {
 		GWV.logChannelHandler(fmt.Sprint("Serving HTTP on PORT: ", GWV.port))
 
 		listener, err := net.Listen("tcp", httpServer.Addr)
-		for !GWV.Stop {
+		for !GWV.stop {
 			err = httpServer.Serve(listener)
 			GWV.extendedErrorHandler("can't start server:", err)
 		}
@@ -247,7 +248,7 @@ func (GWV *WebServer) Start() {
 			}
 			listener, err := tls.Listen("tcp", httpsServer.Addr, httpsServer.TLSConfig)
 
-			for !GWV.Stop {
+			for !GWV.stop {
 				err = httpsServer.Serve(listener)
 				GWV.extendedErrorHandler("can't start server:", err)
 			}
@@ -255,4 +256,9 @@ func (GWV *WebServer) Start() {
 			GWV.extendedErrorHandler("can't start server:", err)
 		}()
 	}
+}
+
+func (GWV *WebServer) Stop() {
+	GWV.stop = true
+	GWV.WG.Done()
 }

@@ -114,7 +114,7 @@ func Test_Webserver(t *testing.T) {
 	HTTPRequest("http://localhost:8080/go/")
 	time.Sleep(50 * time.Millisecond)
 
-	HTTPD.Stop = true
+	HTTPD.Stop()
 
 	t.Logf("stopping")
 	HTTPD.WG.Wait()
@@ -141,7 +141,7 @@ func Test_Realtime(t *testing.T) {
 	HTTPRequest("http://localhost:8081/sse")
 	HTTPRequest("http://localhost:8081/err")
 
-	HTTPD.Stop = true
+	HTTPD.Stop()
 
 	t.Logf("stopping")
 	HTTPD.WG.Wait()
@@ -176,7 +176,7 @@ func Test_LogChan(t *testing.T) {
 	time.Sleep(50 * time.Millisecond)
 	HTTPRequest("http://localhost:8082/tea")
 
-	HTTPD.Stop = true
+	HTTPD.Stop()
 
 	t.Logf("stopping")
 	HTTPD.WG.Wait()
@@ -207,7 +207,7 @@ func Test_ServerPanicRecover(t *testing.T) {
 	HTTPRequest("http://localhost:8083/test/")
 	time.Sleep(50 * time.Millisecond)
 
-	HTTPD.Stop = true
+	HTTPD.Stop()
 
 	t.Logf("stopping")
 	HTTPD.WG.Wait()
@@ -221,7 +221,7 @@ func Test_ServerStopByRequest(t *testing.T) {
 		URL("^/stop/$", func(rw http.ResponseWriter, req *http.Request) (string, int) {
 			t.Logf("stopping")
 			time.Sleep(1 * time.Second)
-			HTTPD.Stop = true
+			HTTPD.Stop()
 			return "stopping", http.StatusOK
 		}, HTML),
 		URL("^/$", func(rw http.ResponseWriter, req *http.Request) (string, int) {
