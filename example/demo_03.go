@@ -17,14 +17,10 @@ func Page404(w http.ResponseWriter, req *http.Request) (string, int) {
 	return "These aren't the Droids your looking for", http.StatusNotFound
 }
 
-var hub *gwv.Connections
-
 func main() {
 	var stp bool = false
 	dir := gopath.Dir()
 	HTTPD := gwv.NewWebServer(8080, 60)
-
-	hub = HTTPD.InitRealtimeHub()
 
 	go func() {
 		for {
@@ -35,9 +31,9 @@ func main() {
 
 	HTTPD.URLhandler(
 		gwv.URL("^/$", func(rw http.ResponseWriter, req *http.Request) (string, int) {
-			return as.String(cachedfile.Read(filepath.Join(dir, "..", "static", "sse.html"))), http.StatusOK
+			return as.String(cachedfile.Read(filepath.Join(dir, "..", "static", "sse2.html"))), http.StatusOK
 		}, gwv.HTML),
-		gwv.SSE("^/sse$", hub),
+		gwv.SSEA("^/sse/\\S+"),
 	)
 
 	HTTPD.Handler404(Page404)
@@ -49,10 +45,6 @@ func main() {
 		if i == "stop" || i == "quit" {
 			HTTPD.Stop()
 			stp = true
-		} else {
-			hub.Messages <- i
-			cc, cd := hub.ClientDetails()
-			fmt.Printf("sending \"%v\" to these %d clients: %v\n", i, cc, cd)
 		}
 	}
 

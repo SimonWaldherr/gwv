@@ -170,7 +170,7 @@ func (GWV *WebServer) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 			case 301, 302, 303, 307:
 				http.Redirect(rw, req, resp, status)
 				return
-			case 400, 401, 403, 404:
+			case 400, 401, 403, 404, 405:
 				GWV.handle404(rw, req, status)
 				return
 			case 500, 501, 502, 503:
