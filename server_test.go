@@ -169,7 +169,6 @@ func Test_MimeTypes(t *testing.T) {
 	HTTPD.WG.Wait()
 }
 
-var messageChannel = make(chan string, 16)
 var hub *Connections
 
 func Test_Realtime(t *testing.T) {
@@ -179,7 +178,7 @@ func Test_Realtime(t *testing.T) {
 
 	HTTPD.URLhandler(
 		URL("^/$", Index, HTML),
-		SSE("^/sse$", hub, messageChannel),
+		SSE("^/sse$", hub),
 	)
 
 	t.Logf("starting")

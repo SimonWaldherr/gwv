@@ -9,17 +9,19 @@ import (
 
 type Connections struct {
 	clients      map[chan string]bool
+	clientips    map[string]bool
 	addClient    chan chan string
 	removeClient chan chan string
-	messages     chan string
+	Messages     chan string
 }
 
 func (GWV *WebServer) InitRealtimeHub() *Connections {
 	var hub = &Connections{
 		clients:      make(map[chan string]bool),
+		clientips:    make(map[string]bool),
 		addClient:    make(chan (chan string)),
 		removeClient: make(chan (chan string)),
-		messages:     make(chan string),
+		Messages:     make(chan string),
 	}
 	go func() {
 		for {
@@ -30,7 +32,7 @@ func (GWV *WebServer) InitRealtimeHub() *Connections {
 			case s := <-hub.removeClient:
 				delete(hub.clients, s)
 				GWV.logChannelHandler("Removed client")
-			case msg := <-hub.messages:
+			case msg := <-hub.Messages:
 				for s := range hub.clients {
 					s <- msg
 				}
@@ -41,15 +43,32 @@ func (GWV *WebServer) InitRealtimeHub() *Connections {
 	return hub
 }
 
-func SSE(re string, hub *Connections, ch chan string) *HandlerWrapper {
+func (hub *Connections) ClientDetails() (int, []string) {
+	var l []string
+	var i int
+	for v, b := range hub.clientips {
+		if b {
+			l = append(l, v)
+			i++
+		}
+	}
+	return i, l
+}
+
+func SSE(re string, hub *Connections) *HandlerWrapper {
 	return handlerify(re, func(rw http.ResponseWriter, req *http.Request) (string, int) {
 		f, ok := rw.(http.Flusher)
 		if !ok {
 			http.Error(rw, "Streaming not supported!", http.StatusInternalServerError)
 			return "", http.StatusNotFound
 		}
-
+		var ch = make(chan string, 16)
 		hub.addClient <- ch
+		hub.clientips[req.RemoteAddr] = true
+		defer func() {
+			hub.removeClient <- ch
+			hub.clientips[req.RemoteAddr] = false
+		}()
 		notify := rw.(http.CloseNotifier).CloseNotify()
 
 		rw.Header().Set("Content-Type", "text/event-stream")
