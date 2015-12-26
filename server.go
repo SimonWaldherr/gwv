@@ -260,7 +260,7 @@ func (GWV *WebServer) Start() {
 
 func (GWV *WebServer) Stop() {
 	if !GWV.stop {
+		GWV.stop = true
 		GWV.WG.Done()
 	}
-	GWV.stop = true
 }

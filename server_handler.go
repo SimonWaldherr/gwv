@@ -28,9 +28,13 @@ func (GWV *WebServer) handle200(rw http.ResponseWriter, req *http.Request, resp 
 		})
 		break
 	case AUTO:
-		reqstr := req.URL.Path[len(route.rawre):]
-		ctype := mime.TypeByExtension(filepath.Ext(reqstr))
-		rw.Header().Set("Content-Type", ctype)
+		if len(req.URL.Path) > len(route.rawre) {
+			reqstr := req.URL.Path[len(route.rawre):]
+			ctype := mime.TypeByExtension(filepath.Ext(reqstr))
+			rw.Header().Set("Content-Type", ctype)
+		} else {
+			rw.Header().Set("Content-type", "text/plain")
+		}
 		_, err = io.WriteString(rw, resp)
 		break
 	case ICON:
