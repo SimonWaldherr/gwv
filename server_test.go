@@ -179,6 +179,7 @@ func Test_Realtime(t *testing.T) {
 	HTTPD.URLhandler(
 		URL("^/$", Index, HTML),
 		SSE("^/sse$", hub),
+		SSEA("^/ssea/\\S+$"),
 	)
 
 	t.Logf("starting")
@@ -186,6 +187,7 @@ func Test_Realtime(t *testing.T) {
 	t.Logf("started")
 
 	HTTPRequest("http://localhost:8082/sse")
+	HTTPRequest("http://localhost:8082/ssea/foobar")
 	HTTPRequest("http://localhost:8082/err")
 	
 	i, ip := hub.ClientDetails()
