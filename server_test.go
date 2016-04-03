@@ -187,6 +187,9 @@ func Test_Realtime(t *testing.T) {
 
 	HTTPRequest("http://localhost:8082/sse")
 	HTTPRequest("http://localhost:8082/err")
+	
+	i, ip := hub.ClientDetails()
+	t.Logf("count: %v\nIP-Addresses: %v\n", i, ip)
 
 	HTTPD.Stop()
 

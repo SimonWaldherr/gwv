@@ -11,21 +11,16 @@ import (
 
 func (GWV *WebServer) handle200(rw http.ResponseWriter, req *http.Request, resp string, route *HandlerWrapper, code int) {
 	var err error
-	rw.WriteHeader(code)
+
 	switch route.mime {
 	case HTML:
-		rw.Header().Set("Content-type", "text/html")
-		_, err = io.WriteString(rw, resp)
+		rw.Header().Set("Content-Type", "text/html")
 		break
 	case PLAIN:
-		rw.Header().Set("Content-type", "text/plain")
-		_, err = io.WriteString(rw, resp)
+		rw.Header().Set("Content-Type", "text/plain")
 		break
 	case JSON:
-		rw.Header().Set("Content-type", "application/json")
-		err = json.NewEncoder(rw).Encode(map[string]string{
-			"message": resp,
-		})
+		rw.Header().Set("Content-Type", "application/json")
 		break
 	case AUTO:
 		if len(req.URL.Path) > len(route.rawre) {
@@ -33,22 +28,30 @@ func (GWV *WebServer) handle200(rw http.ResponseWriter, req *http.Request, resp 
 			ctype := mime.TypeByExtension(filepath.Ext(reqstr))
 			rw.Header().Set("Content-Type", ctype)
 		} else {
-			rw.Header().Set("Content-type", "text/plain")
+			rw.Header().Set("Content-Type", "text/plain")
 		}
-		_, err = io.WriteString(rw, resp)
 		break
 	case ICON:
 		rw.Header().Set("Content-Type", "image/x-icon")
-		_, err = io.WriteString(rw, resp)
 		break
 	case DOWNLOAD:
 		rw.Header().Set("Content-Type", "application/octet-stream")
 		rw.Header().Set("Content-Disposition", "attachment")
-		_, err = io.WriteString(rw, resp)
 		break
 	default:
 		GWV.logChannelHandler(fmt.Sprint("Unknown handler type: ", route.mime))
 		break
+	}
+
+	rw.WriteHeader(code)
+
+	switch route.mime {
+	case JSON:
+		err = json.NewEncoder(rw).Encode(map[string]string{
+			"message": resp,
+		})
+	default:
+		_, err = io.WriteString(rw, resp)
 	}
 	GWV.extendedErrorHandler("Error on WriteString to client: ", err, false)
 }
