@@ -31,6 +31,8 @@ func (GWV *WebServer) handle200(rw http.ResponseWriter, req *http.Request, resp 
 			rw.Header().Set("Content-Type", "text/plain")
 		}
 		break
+	case MANUAL:
+		return
 	case ICON:
 		rw.Header().Set("Content-Type", "image/x-icon")
 		break

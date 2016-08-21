@@ -26,6 +26,7 @@ const (
 	PLAIN
 	REDIRECT
 	DOWNLOAD
+	MANUAL
 )
 
 type handler func(http.ResponseWriter, *http.Request) (string, int)
