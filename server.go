@@ -78,6 +78,13 @@ func Download(re string, view handler) *HandlerWrapper {
 	return handlerify(re, view, DOWNLOAD)
 }
 
+var extensions = []string{
+	"",
+	".htm",
+	".html",
+	".shtml",
+}
+
 func StaticFiles(reqpath string, paths ...string) *HandlerWrapper {
 	return handlerify(reqpath, func(rw http.ResponseWriter, req *http.Request) (string, int) {
 		filename := req.URL.Path[len(reqpath):]
@@ -85,8 +92,12 @@ func StaticFiles(reqpath string, paths ...string) *HandlerWrapper {
 			if strings.Count(path, "..") != 0 {
 				return "", http.StatusNotFound
 			}
-			http.ServeFile(rw, req, filepath.Join(path, filename))
-			return "", 0
+			for _, ext := range extensions {
+				if file.IsFile(filepath.Join(path, filename) + ext) {
+					http.ServeFile(rw, req, filepath.Join(path, filename)+ext)
+					return "", 0
+				}
+			}
 		}
 		return "", http.StatusNotFound
 	}, AUTO)
