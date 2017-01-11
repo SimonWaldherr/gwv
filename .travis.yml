@@ -4,8 +4,8 @@ os:
 language: go
 sudo: false
 go:
-- 1.4.3
 - 1.6
+- 1.7
 - tip
 before_install:
 - go get github.com/axw/gocov/gocov
@@ -19,7 +19,6 @@ install:
 - go get -t simonwaldherr.de/go/gwv
 - go get github.com/modocache/gover
 script:
-- export GO15VENDOREXPERIMENT=1
 - go test -v -coverprofile=gover.coverprofile .
 - $HOME/gopath/bin/gover
 - $HOME/gopath/bin/goveralls -coverprofile=gover.coverprofile -service=travis-ci
