@@ -3,6 +3,7 @@
 package main
 
 import (
+	gwv "../../gwv"
 	"fmt"
 	"log"
 	"net/http"
@@ -10,7 +11,6 @@ import (
 	"simonwaldherr.de/go/golibs/as"
 	"simonwaldherr.de/go/golibs/cachedfile"
 	"simonwaldherr.de/go/golibs/gopath"
-	"simonwaldherr.de/go/gwv"
 	"time"
 )
 

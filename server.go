@@ -85,11 +85,8 @@ func StaticFiles(reqpath string, paths ...string) *HandlerWrapper {
 			if strings.Count(path, "..") != 0 {
 				return "", http.StatusNotFound
 			}
-			data, err := file.Read(filepath.Join(path, filename))
-			if err != nil {
-				continue
-			}
-			return data, http.StatusOK
+			http.ServeFile(rw, req, filepath.Join(path, filename))
+			return "", 0
 		}
 		return "", http.StatusNotFound
 	}, AUTO)
@@ -165,6 +162,8 @@ func (GWV *WebServer) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 			resp, status := route.handler(rw, req)
 
 			switch status {
+			case 0:
+				return
 			case 200, 201, 202, 418:
 				GWV.handle200(rw, req, resp, route, status)
 				return
