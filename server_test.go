@@ -198,7 +198,7 @@ func Test_Realtime(t *testing.T) {
 	HTTPD.Stop()
 
 	t.Logf("stopping")
-	HTTPD.WG.Wait()
+	//HTTPD.WG.Wait()
 	t.Logf("stopped")
 }
 
