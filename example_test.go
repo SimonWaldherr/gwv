@@ -35,17 +35,17 @@ func HTTPRequest(url string) string {
 
 func Example() {
 	dir := gopath.Dir()
-	HTTPD := gwv.NewWebServer(8080, 60)
+	HTTPD := gwv.NewWebServer(8095, 60)
 
 	HTTPD.URLhandler(
 		gwv.Robots(as.String(cachedfile.Read(filepath.Join(dir, "static", "robots.txt")))),
 	)
 
 	HTTPD.Start()
-	
+
 	time.Sleep(50 * time.Millisecond)
 
-	str := HTTPRequest("http://localhost:8080/robots.txt")
+	str := HTTPRequest("http://127.0.0.1:8095/robots.txt")
 	fmt.Println(str)
 
 	HTTPD.Stop()
