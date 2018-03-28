@@ -20,10 +20,7 @@ install:
 script:
 - go test -v -coverprofile=gover.coverprofile .
 - $HOME/gopath/bin/gover
-- $HOME/gopath/bin/goveralls -coverprofile=gover.coverprofile -service=travis-ci
-- go tool cover -html=gover.coverprofile -o coverage.html
-- go tool cover -func=gover.coverprofile
-- go test -coverprofile=coverage.txt -covermode=atomic
+- $HOME/gopath/bin/goveralls -service=travis-ci
 after_success:
 - cp coverprofile coverage.log
 - codecov
@@ -33,6 +30,3 @@ notifications:
       - travis@simon.waldherr.eu
     on_success: always
     on_failure: always
-env:
-  matrix:
-    secure: bjYzYKskjYaWx4SXb/nxRnzVas0xGKxNzLZFGxcsmWSssvwzQFCg8TPaTgdDmfgaZvGw5rpyeAfOgf+3R1mjcPNM1Xv6KTeCLwNoh4Bdwc5HyN/Ppn7f/3zhKaGfFx2MXzwmo8fXrtZymXBfJsfk71v4qMuIpHeY/DCCRZD0vbA=
