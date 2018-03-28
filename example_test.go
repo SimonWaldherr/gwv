@@ -42,6 +42,8 @@ func Example() {
 	)
 
 	HTTPD.Start()
+	
+	time.Sleep(50 * time.Millisecond)
 
 	str := HTTPRequest("http://localhost:8080/robots.txt")
 	fmt.Println(str)
