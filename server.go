@@ -1,9 +1,12 @@
 package gwv
 
 import (
+	"bytes"
 	"crypto/tls"
 	"fmt"
 	"golang.org/x/net/http2"
+	"io"
+	"io/ioutil"
 	"net"
 	"net/http"
 	"path/filepath"
@@ -25,6 +28,7 @@ const (
 	ICON
 	PLAIN
 	REDIRECT
+	PROXY
 	DOWNLOAD
 	MANUAL
 )
@@ -104,9 +108,9 @@ func StaticFiles(reqpath string, paths ...string) *HandlerWrapper {
 }
 
 func Favicon(path string) *HandlerWrapper {
+	data, err := file.Read(path)
 	return handlerify("^/favicon.ico$",
 		func(rw http.ResponseWriter, req *http.Request) (string, int) {
-			data, err := file.Read(path)
 			if err != nil {
 				return "", http.StatusNotFound
 			}
@@ -119,6 +123,40 @@ func Redirect(path, destination string, code int) *HandlerWrapper {
 		func(rw http.ResponseWriter, req *http.Request) (string, int) {
 			return destination, code
 		}, REDIRECT)
+}
+
+func Proxy(path, destination string) *HandlerWrapper {
+	re := regexp.MustCompile(path)
+	return handlerify(path,
+		func(rw http.ResponseWriter, req *http.Request) (string, int) {
+			httpClient := http.Client{}
+
+			body, err := ioutil.ReadAll(req.Body)
+			if err != nil {
+				http.Error(rw, err.Error(), http.StatusInternalServerError)
+				return "", http.StatusInternalServerError
+			}
+
+			req.Body = ioutil.NopCloser(bytes.NewReader(body))
+			url := fmt.Sprintf("%s%s", destination, re.ReplaceAllString(req.RequestURI, ""))
+			proxyReq, err := http.NewRequest(req.Method, url, bytes.NewReader(body))
+			proxyReq.Header = req.Header
+			resp, err := httpClient.Do(proxyReq)
+			if err != nil {
+				http.Error(rw, err.Error(), http.StatusBadGateway)
+				return "", http.StatusBadGateway
+			}
+			defer resp.Body.Close()
+
+			for name, values := range resp.Header {
+				rw.Header()[name] = values
+			}
+
+			rw.WriteHeader(resp.StatusCode)
+			io.Copy(rw, resp.Body)
+
+			return "", 0
+		}, PROXY)
 }
 
 func Robots(data string) *HandlerWrapper {
@@ -187,7 +225,6 @@ func (GWV *WebServer) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 			case 500, 501, 502, 503:
 				GWV.handle500(rw, req, status)
 				return
-
 			}
 		}
 	}

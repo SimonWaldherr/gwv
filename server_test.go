@@ -95,6 +95,7 @@ func Test_Webserver(t *testing.T) {
 		StaticFiles("/static/", filepath.Join(".", "static")),
 		Favicon(filepath.Join(".", "static", "favicon.ico")),
 		Redirect("^/go/$", "/golang/", 301),
+		Proxy("^/proxy/", "https://golang.org/"),
 		URL("^/golang/$", Golang, HTML),
 		URL("^/tea$", Teapot, HTML),
 		URL("^/$", Index, HTML),
