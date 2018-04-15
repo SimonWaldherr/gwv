@@ -45,8 +45,7 @@ type HandlerWrapper struct {
 type WebServer struct {
 	port       int
 	secureport int
-	sslkey     string
-	sslcert    string
+	secureconf []sslconf
 	spdy       bool
 	routes     []*HandlerWrapper
 	timeout    time.Duration
@@ -55,6 +54,11 @@ type WebServer struct {
 	WG         sync.WaitGroup
 	stop       bool
 	LogChan    chan string
+}
+
+type sslconf struct {
+	sslkey  string
+	sslcert string
 }
 
 func (u *HandlerWrapper) String() string {
@@ -187,9 +191,14 @@ func (GWV *WebServer) InitLogChan() {
 
 func (GWV *WebServer) ConfigSSL(port int, sslkey string, sslcert string, spdy bool) {
 	GWV.secureport = port
-	GWV.sslkey = sslkey
-	GWV.sslcert = sslcert
+	GWV.secureconf = append(GWV.secureconf, sslconf{sslkey: sslkey, sslcert: sslcert})
+	//GWV.sslkey = sslkey
+	//GWV.sslcert = sslcert
 	GWV.spdy = spdy
+}
+
+func (GWV *WebServer) ConfigSSLAddCert(sslkey, sslcert string) {
+	GWV.secureconf = append(GWV.secureconf, sslconf{sslkey: sslkey, sslcert: sslcert})
 }
 
 func (GWV *WebServer) URLhandler(patterns ...*HandlerWrapper) {
@@ -265,7 +274,26 @@ func (GWV *WebServer) Start() {
 	}()
 
 	if GWV.secureport != 0 {
-		if GWV.sslkey == "" || GWV.sslcert == "" || CheckSSL(GWV.sslcert, GWV.sslkey) != nil {
+		var err error
+		noCert := true
+		tlsConf := &tls.Config{
+			//Certificates: []tls.Certificate{cert},
+			MinVersion: tls.VersionTLS11,
+		}
+		tlsConf.Certificates = make([]tls.Certificate, len(GWV.secureconf))
+
+		for cert := range GWV.secureconf {
+			tlsConf.Certificates[cert], err = tls.LoadX509KeyPair(GWV.secureconf[cert].sslcert, GWV.secureconf[cert].sslkey)
+			if err == nil {
+				noCert = false
+			} else {
+				GWV.extendedErrorHandler("can't load key pair: ", err, true)
+			}
+		}
+		tlsConf.BuildNameToCertificate()
+
+		//if GWV.sslkey == "" || GWV.sslcert == "" || CheckSSL(GWV.sslcert, GWV.sslkey) != nil {
+		if noCert == true {
 			options := map[string]string{}
 			options["certPath"] = "ssl.cert"
 			options["keyPath"] = "ssl.key"
@@ -274,17 +302,14 @@ func (GWV *WebServer) Start() {
 			GWV.extendedErrorHandler("can't generate ssl cert:", err, true)
 		}
 
-		cert, err := tls.LoadX509KeyPair(GWV.sslcert, GWV.sslkey)
-		GWV.extendedErrorHandler("can't load key pair: ", err, true)
+		//cert, err := tls.LoadX509KeyPair(GWV.sslcert, GWV.sslkey)
+		//GWV.extendedErrorHandler("can't load key pair: ", err, true)
 
 		httpsServer := http.Server{
 			Addr:        ":" + as.String(GWV.secureport),
 			Handler:     GWV,
 			ReadTimeout: GWV.timeout * time.Second,
-			TLSConfig: &tls.Config{
-				Certificates: []tls.Certificate{cert},
-				MinVersion:   tls.VersionTLS11,
-			},
+			TLSConfig:   tlsConf,
 		}
 
 		go func() {
