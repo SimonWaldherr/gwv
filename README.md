@@ -22,6 +22,8 @@ Golang Web Valve - to be connected to your series of tubes
 * Realtime Webserver (SSE)
 * gracefully stoppable
 * channelised log
+* session and cookie handling
+* SNI for multiple Domains
 
 ## license
 

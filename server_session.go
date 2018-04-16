@@ -16,6 +16,7 @@ type Cryptor struct {
 	MakeCookieFunc MakeCookieFunc
 }
 
+//NewSimpleCryptor returns a pointer to crypto cookie object
 func NewSimpleCryptor(secretKey []byte, cookieName string) *Cryptor {
 	return &Cryptor{
 		SecretKey:  secretKey,
@@ -34,7 +35,7 @@ func NewSimpleCryptor(secretKey []byte, cookieName string) *Cryptor {
 // makes an empty cookie, no value
 type MakeCookieFunc func(w http.ResponseWriter, r *http.Request) *http.Cookie
 
-// seralize and encrypt v and write to cookie
+//Write seralize and encrypts values and write them to a cookie
 func (sc *Cryptor) Write(v interface{}, w http.ResponseWriter, r *http.Request) error {
 
 	// marshall data
@@ -67,6 +68,7 @@ func (sc *Cryptor) Write(v interface{}, w http.ResponseWriter, r *http.Request) 
 
 }
 
+//Read returns the decrypted value of the cookie
 func (sc *Cryptor) Read(v interface{}, r *http.Request) error {
 
 	c, err := r.Cookie(sc.CookieName)
@@ -110,7 +112,7 @@ func (sc *Cryptor) Read(v interface{}, r *http.Request) error {
 	return nil
 }
 
-// remove cookie (effectively destroying the session)
+//Clear removes the cookie (effectively destroying the session)
 func (sc *Cryptor) Clear(w http.ResponseWriter, r *http.Request) {
 	c := sc.MakeCookieFunc(w, r)
 	c.MaxAge = -1

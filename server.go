@@ -78,10 +78,12 @@ func handlerify(re string, handler handler, mime mimeCtrl) *HandlerWrapper {
 	}
 }
 
+//URL creates a handler for a given URL, the URL can contain a regular expression
 func URL(re string, view handler, handler mimeCtrl) *HandlerWrapper {
 	return handlerify(re, view, handler)
 }
 
+//Download creates a handler for a given URL and sends the attachment header
 func Download(re string, view handler) *HandlerWrapper {
 	return handlerify(re, view, DOWNLOAD)
 }
@@ -93,6 +95,7 @@ var extensions = []string{
 	".shtml",
 }
 
+//StaticFiles creates a handler for a given request path and a folder
 func StaticFiles(reqpath string, paths ...string) *HandlerWrapper {
 	return handlerify(reqpath, func(rw http.ResponseWriter, req *http.Request) (string, int) {
 		filename := req.URL.Path[len(reqpath):]
@@ -111,6 +114,7 @@ func StaticFiles(reqpath string, paths ...string) *HandlerWrapper {
 	}, AUTO)
 }
 
+//Favicon creates a handler for a favicon, its only argument is the path to the favicon file
 func Favicon(path string) *HandlerWrapper {
 	data, err := file.Read(path)
 	return handlerify("^/favicon.ico$",
@@ -122,6 +126,7 @@ func Favicon(path string) *HandlerWrapper {
 		}, ICON)
 }
 
+//Redirect creates a handler for HTTP redirects
 func Redirect(path, destination string, code int) *HandlerWrapper {
 	return handlerify(path,
 		func(rw http.ResponseWriter, req *http.Request) (string, int) {
@@ -129,6 +134,7 @@ func Redirect(path, destination string, code int) *HandlerWrapper {
 		}, REDIRECT)
 }
 
+//Proxy creates proxy handler
 func Proxy(path, destination string) *HandlerWrapper {
 	re := regexp.MustCompile(path)
 	return handlerify(path,
@@ -163,6 +169,7 @@ func Proxy(path, destination string) *HandlerWrapper {
 		}, PROXY)
 }
 
+//Robots creates a handler for the robots.txt file
 func Robots(data string) *HandlerWrapper {
 	return handlerify("^/robots.txt$",
 		func(rw http.ResponseWriter, req *http.Request) (string, int) {
@@ -170,6 +177,7 @@ func Robots(data string) *HandlerWrapper {
 		}, PLAIN)
 }
 
+//Humans creates a handler for the humans.txt file
 func Humans(data string) *HandlerWrapper {
 	return handlerify("^/humans.txt$",
 		func(rw http.ResponseWriter, req *http.Request) (string, int) {
@@ -177,6 +185,7 @@ func Humans(data string) *HandlerWrapper {
 		}, PLAIN)
 }
 
+//NewWebServer returns a pointer to the webserver object
 func NewWebServer(port int, timeout time.Duration) *WebServer {
 	return &WebServer{
 		port:    port,
@@ -189,14 +198,14 @@ func (GWV *WebServer) InitLogChan() {
 	GWV.LogChan = make(chan string, 128)
 }
 
+//ConfigSSL sets parameter for the HTTPS configuration
 func (GWV *WebServer) ConfigSSL(port int, sslkey string, sslcert string, spdy bool) {
 	GWV.secureport = port
 	GWV.secureconf = append(GWV.secureconf, sslconf{sslkey: sslkey, sslcert: sslcert})
-	//GWV.sslkey = sslkey
-	//GWV.sslcert = sslcert
 	GWV.spdy = spdy
 }
 
+//ConfigSSLAddCert adds additional SSL Certs (select Cert by Server Name Indication (SNI))
 func (GWV *WebServer) ConfigSSLAddCert(sslkey, sslcert string) {
 	GWV.secureconf = append(GWV.secureconf, sslconf{sslkey: sslkey, sslcert: sslcert})
 }
@@ -248,6 +257,7 @@ func CheckSSL(certPath string, keyPath string) error {
 	return ssl.Check(certPath, keyPath)
 }
 
+//Start starts the web server
 func (GWV *WebServer) Start() {
 	GWV.WG.Add(1)
 	defer func() {
@@ -277,7 +287,6 @@ func (GWV *WebServer) Start() {
 		var err error
 		noCert := true
 		tlsConf := &tls.Config{
-			//Certificates: []tls.Certificate{cert},
 			MinVersion: tls.VersionTLS11,
 		}
 		tlsConf.Certificates = make([]tls.Certificate, len(GWV.secureconf))
@@ -292,7 +301,6 @@ func (GWV *WebServer) Start() {
 		}
 		tlsConf.BuildNameToCertificate()
 
-		//if GWV.sslkey == "" || GWV.sslcert == "" || CheckSSL(GWV.sslcert, GWV.sslkey) != nil {
 		if noCert == true {
 			options := map[string]string{}
 			options["certPath"] = "ssl.cert"
@@ -301,9 +309,6 @@ func (GWV *WebServer) Start() {
 			err := GenerateSSL(options)
 			GWV.extendedErrorHandler("can't generate ssl cert:", err, true)
 		}
-
-		//cert, err := tls.LoadX509KeyPair(GWV.sslcert, GWV.sslkey)
-		//GWV.extendedErrorHandler("can't load key pair: ", err, true)
 
 		httpsServer := http.Server{
 			Addr:        ":" + as.String(GWV.secureport),
@@ -331,6 +336,7 @@ func (GWV *WebServer) Start() {
 	}
 }
 
+//Stop stops all listeners and wait until all connections are closed
 func (GWV *WebServer) Stop() {
 	if !GWV.stop {
 		GWV.stop = true
