@@ -1,32 +1,4 @@
-os:
-- linux
 language: go
-sudo: false
-go:
-- "1.6"
-- "1.10"
-- "tip"
-before_install:
-- go get github.com/axw/gocov/gocov
-- go get github.com/mattn/goveralls
-- go get golang.org/x/tools/cmd/cover
-- go get github.com/onsi/gomega
-- go get github.com/onsi/ginkgo
-- pip install --user codecov
-install:
-- go get -t .
-- go get -t simonwaldherr.de/go/gwv
-- go get github.com/modocache/gover
-script:
-- go test -v -coverprofile=gover.coverprofile .
-- $HOME/gopath/bin/gover
-- $HOME/gopath/bin/goveralls -service=travis-ci
-after_success:
-- cp coverprofile coverage.log
-- codecov
-notifications: 
-  email: 
-    recipients:
-      - travis@simon.waldherr.eu
-    on_success: always
-    on_failure: always
+script: go get -t simonwaldherr.de/go/gwv/... && go test simonwaldherr.de/go/gwv/...
+notifications:
+  email: false
