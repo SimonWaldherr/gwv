@@ -1,9 +1,9 @@
+//go:build local
 // +build local
 
 package main
 
 import (
-	gwv "../../gwv"
 	"fmt"
 	"net/http"
 	"path/filepath"
@@ -11,6 +11,7 @@ import (
 	"simonwaldherr.de/go/golibs/cache"
 	"simonwaldherr.de/go/golibs/cachedfile"
 	"simonwaldherr.de/go/golibs/gopath"
+	"simonwaldherr.de/go/gwv"
 	"sync/atomic"
 	"time"
 )
