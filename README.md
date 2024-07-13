@@ -1,6 +1,7 @@
 # GWV β
 Golang Web Valve - to be connected to your series of tubes
 
+[![Go](https://github.com/SimonWaldherr/gwv/actions/workflows/go.yml/badge.svg)](https://github.com/SimonWaldherr/gwv/actions/workflows/go.yml) 
 [![Coverage Status](https://img.shields.io/coveralls/SimonWaldherr/gwv.svg?style=flat-square)](https://simonwaldherr.de/gocover/gwv/) 
 [![GoDoc](https://img.shields.io/badge/godoc-reference-blue.svg)](https://godoc.org/github.com/SimonWaldherr/gwv/)  
 
