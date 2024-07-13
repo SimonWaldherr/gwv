@@ -17,68 +17,70 @@ type Connections struct {
 }
 
 func initRealtimeHub() *Connections {
-	var hub = &Connections{
+	hub := &Connections{
 		clients:      make(map[chan string]bool),
 		clientips:    make(map[string]bool),
-		addClient:    make(chan (chan string)),
-		removeClient: make(chan (chan string)),
+		addClient:    make(chan chan string),
+		removeClient: make(chan chan string),
 		Messages:     make(chan string),
 	}
-	go func() {
-		for {
-			select {
-			case s := <-hub.addClient:
-				hub.clients[s] = true
-			case s := <-hub.removeClient:
-				delete(hub.clients, s)
-			case msg := <-hub.Messages:
-				for s := range hub.clients {
-					s <- msg
-				}
-			}
-		}
-	}()
+	go hub.run()
 	return hub
 }
 
-func (GWV *WebServer) InitRealtimeHub() *Connections {
-	var hub = &Connections{
-		clients:      make(map[chan string]bool),
-		clientips:    make(map[string]bool),
-		addClient:    make(chan (chan string)),
-		removeClient: make(chan (chan string)),
-		Messages:     make(chan string),
-	}
-	go func() {
-		for {
-			select {
-			case s := <-hub.addClient:
-				hub.clients[s] = true
-				GWV.logChannelHandler("Added new client")
-			case s := <-hub.removeClient:
-				delete(hub.clients, s)
-				GWV.logChannelHandler("Removed client")
-			case msg := <-hub.Messages:
-				for s := range hub.clients {
-					s <- msg
-				}
-				GWV.logChannelHandler(fmt.Sprintf("Broadcast \"%v\" to %d clients", msg, len(hub.clients)))
+func (hub *Connections) run() {
+	for {
+		select {
+		case s := <-hub.addClient:
+			hub.clients[s] = true
+		case s := <-hub.removeClient:
+			delete(hub.clients, s)
+		case msg := <-hub.Messages:
+			for s := range hub.clients {
+				s <- msg
 			}
 		}
-	}()
+	}
+}
+
+func (GWV *WebServer) InitRealtimeHub() *Connections {
+	hub := &Connections{
+		clients:      make(map[chan string]bool),
+		clientips:    make(map[string]bool),
+		addClient:    make(chan chan string),
+		removeClient: make(chan chan string),
+		Messages:     make(chan string),
+	}
+	go hub.runWithLogging(GWV)
 	return hub
+}
+
+func (hub *Connections) runWithLogging(GWV *WebServer) {
+	for {
+		select {
+		case s := <-hub.addClient:
+			hub.clients[s] = true
+			GWV.logChannelHandler("Added new client")
+		case s := <-hub.removeClient:
+			delete(hub.clients, s)
+			GWV.logChannelHandler("Removed client")
+		case msg := <-hub.Messages:
+			for s := range hub.clients {
+				s <- msg
+			}
+			GWV.logChannelHandler(fmt.Sprintf("Broadcast \"%v\" to %d clients", msg, len(hub.clients)))
+		}
+	}
 }
 
 func (hub *Connections) ClientDetails() (int, []string) {
 	var l []string
-	var i int
 	for v, b := range hub.clientips {
 		if b {
 			l = append(l, v)
-			i++
 		}
 	}
-	return i, l
+	return len(l), l
 }
 
 func SSE(re string, hub *Connections) *HandlerWrapper {
@@ -86,15 +88,17 @@ func SSE(re string, hub *Connections) *HandlerWrapper {
 		f, ok := rw.(http.Flusher)
 		if !ok {
 			http.Error(rw, "Streaming not supported!", http.StatusInternalServerError)
-			return "", http.StatusNotFound
+			return "", http.StatusInternalServerError
 		}
-		var ch = make(chan string, 16)
+
+		ch := make(chan string, 16)
 		hub.addClient <- ch
 		hub.clientips[req.RemoteAddr] = true
 		defer func() {
 			hub.removeClient <- ch
 			hub.clientips[req.RemoteAddr] = false
 		}()
+
 		notify := rw.(http.CloseNotifier).CloseNotify()
 
 		rw.Header().Set("Content-Type", "text/event-stream")
@@ -105,19 +109,16 @@ func SSE(re string, hub *Connections) *HandlerWrapper {
 			select {
 			case msg := <-ch:
 				jsonData, _ := json.Marshal(msg)
-				str := string(jsonData)
-				fmt.Fprintf(rw, "data: {\"str\": %s, \"time\": \"%v\"}\n\n", str, time.Now())
-
+				fmt.Fprintf(rw, "data: {\"str\": %s, \"time\": \"%v\"}\n\n", jsonData, time.Now())
 				f.Flush()
-			case <-time.After(time.Second * 45):
+			case <-time.After(45 * time.Second):
 				fmt.Fprintf(rw, "data: {\"str\": \"No Data\"}\n\n")
-
 				f.Flush()
 				i++
 			case <-notify:
 				f.Flush()
-				i = 1440
 				hub.removeClient <- ch
+				i = 1440
 			}
 		}
 		return "", http.StatusOK
@@ -130,36 +131,36 @@ func SSEA(re string) *HandlerWrapper {
 	return handlerify(re, func(rw http.ResponseWriter, req *http.Request) (string, int) {
 		requrl := fmt.Sprint(req.URL)
 
-		if req.Method != "GET" {
-			if req.Method == "POST" {
-				if _, ok := hubArray[requrl]; ok {
-					str, err := ioutil.ReadAll(req.Body)
-					if err == nil {
-						hubArray[requrl].Messages <- string(str)
-						return "", http.StatusAccepted
-					}
-					return "", http.StatusBadRequest
+		if req.Method == "POST" {
+			if hub, ok := hubArray[requrl]; ok {
+				body, err := ioutil.ReadAll(req.Body)
+				if err == nil {
+					hub.Messages <- string(body)
+					return "", http.StatusAccepted
 				}
+				return "", http.StatusBadRequest
 			}
 			return "", http.StatusMethodNotAllowed
 		}
+
 		f, ok := rw.(http.Flusher)
 		if !ok {
 			http.Error(rw, "Streaming not supported!", http.StatusInternalServerError)
-			return "", http.StatusNotFound
+			return "", http.StatusInternalServerError
 		}
 
 		if _, ok := hubArray[requrl]; !ok {
 			hubArray[requrl] = initRealtimeHub()
 		}
 
-		var ch = make(chan string, 16)
+		ch := make(chan string, 16)
 		hubArray[requrl].addClient <- ch
 		hubArray[requrl].clientips[req.RemoteAddr] = true
 		defer func() {
 			hubArray[requrl].removeClient <- ch
 			hubArray[requrl].clientips[req.RemoteAddr] = false
 		}()
+
 		notify := rw.(http.CloseNotifier).CloseNotify()
 
 		rw.Header().Set("Content-Type", "text/event-stream")
@@ -170,19 +171,16 @@ func SSEA(re string) *HandlerWrapper {
 			select {
 			case msg := <-ch:
 				jsonData, _ := json.Marshal(msg)
-				str := string(jsonData)
-				fmt.Fprintf(rw, "data: {\"str\": %s, \"time\": \"%v\"}\n\n", str, time.Now())
-
+				fmt.Fprintf(rw, "data: {\"str\": %s, \"time\": \"%v\"}\n\n", jsonData, time.Now())
 				f.Flush()
-			case <-time.After(time.Second * 45):
+			case <-time.After(45 * time.Second):
 				fmt.Fprintf(rw, "data: {\"str\": \"No Data\"}\n\n")
-
 				f.Flush()
 				i++
 			case <-notify:
 				f.Flush()
-				i = 1440
 				hubArray[requrl].removeClient <- ch
+				i = 1440
 			}
 		}
 		return "", http.StatusOK

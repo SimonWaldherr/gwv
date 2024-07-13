@@ -18,13 +18,12 @@ func Page404(w http.ResponseWriter, req *http.Request) (string, int) {
 }
 
 func main() {
-	var stp bool = false
+	var stp bool
 	dir := gopath.Dir()
 	HTTPD := gwv.NewWebServer(8080, 60)
 
 	go func() {
-		for {
-			msg := <-HTTPD.LogChan
+		for msg := range HTTPD.LogChan {
 			log.Println(msg)
 		}
 	}()
@@ -39,8 +38,8 @@ func main() {
 	HTTPD.Handler404(Page404)
 	HTTPD.Start()
 
-	var i string
-	for stp == false {
+	for !stp {
+		var i string
 		_, _ = fmt.Scanf("%v", &i)
 		if i == "stop" || i == "quit" {
 			HTTPD.Stop()

@@ -20,7 +20,7 @@ func HTTPRequest(url string) string {
 	tr := &http.Transport{
 		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
 	}
-	timeout := time.Duration(2 * time.Second)
+	timeout := 2 * time.Second
 	client := &http.Client{
 		Transport: tr,
 		Timeout:   timeout,
@@ -35,18 +35,15 @@ func HTTPRequest(url string) string {
 	rsp, err := client.Do(req)
 	if err != nil {
 		fmt.Println(err)
-	} else {
-		if rsp.StatusCode == 200 {
-			bodyBytes, _ := ioutil.ReadAll(rsp.Body)
-			return string(bodyBytes)
-		} else if err != nil {
-			fmt.Println(err)
-		} else {
-			return as.String(rsp.StatusCode)
-		}
-		rsp.Body.Close()
+		return ""
 	}
-	return ""
+	defer rsp.Body.Close()
+
+	if rsp.StatusCode == http.StatusOK {
+		bodyBytes, _ := ioutil.ReadAll(rsp.Body)
+		return string(bodyBytes)
+	}
+	return as.String(rsp.StatusCode)
 }
 
 func Index(rw http.ResponseWriter, req *http.Request) (string, int) {
@@ -100,10 +97,10 @@ func Test_Webserver(t *testing.T) {
 		URL("^/tea$", Teapot, HTML),
 		URL("^/$", Index, HTML),
 		URL("^/500$", func(rw http.ResponseWriter, req *http.Request) (string, int) {
-			return "500", 500
+			return "500", http.StatusInternalServerError
 		}, PLAIN),
 		URL("^/404$", func(rw http.ResponseWriter, req *http.Request) (string, int) {
-			return "404", 404
+			return "404", http.StatusNotFound
 		}, PLAIN),
 	)
 
@@ -246,7 +243,7 @@ func Test_ServerPanicRecover(t *testing.T) {
 			return "everything is fine", http.StatusOK
 		}, HTML),
 		URL("^/$", func(rw http.ResponseWriter, req *http.Request) (string, int) {
-			panic("panic")
+			panic("Intentionally panic, this is on purpose")
 			return "panic", http.StatusInternalServerError
 		}, HTML),
 	)
@@ -304,16 +301,16 @@ func Test_StatusCodes(t *testing.T) {
 
 	HTTPD.URLhandler(
 		URL("^/200$", func(rw http.ResponseWriter, req *http.Request) (string, int) {
-			return "HTML", 200
+			return "HTML", http.StatusOK
 		}, PLAIN),
 		URL("^/300$", func(rw http.ResponseWriter, req *http.Request) (string, int) {
-			return "300", 300
+			return "300", http.StatusMultipleChoices
 		}, PLAIN),
 		URL("^/400$", func(rw http.ResponseWriter, req *http.Request) (string, int) {
-			return "400", 400
+			return "400", http.StatusBadRequest
 		}, PLAIN),
 		URL("^/500$", func(rw http.ResponseWriter, req *http.Request) (string, int) {
-			return "500", 500
+			return "500", http.StatusInternalServerError
 		}, PLAIN),
 	)
 
@@ -331,14 +328,15 @@ func Test_StatusCodes(t *testing.T) {
 func Test_SSL(t *testing.T) {
 	CheckSSL("ssl.cert", "ssl.key")
 
-	options := map[string]string{}
-	options["certPath"] = "ssl.cert"
-	options["keyPath"] = "ssl.key"
-	options["host"] = "*"
-	options["countryName"] = "DE"
-	options["provinceName"] = "Bavaria"
-	options["organizationName"] = "Lorem Ipsum Ltd"
-	options["commonName"] = "*"
+	options := map[string]string{
+		"certPath":         "ssl.cert",
+		"keyPath":          "ssl.key",
+		"host":             "*",
+		"countryName":      "DE",
+		"provinceName":     "Bavaria",
+		"organizationName": "Lorem Ipsum Ltd",
+		"commonName":       "*",
+	}
 
 	GenerateSSL(options)
 }

@@ -4,19 +4,19 @@ import (
 	"bytes"
 	"crypto/tls"
 	"fmt"
-	"golang.org/x/net/http2"
 	"io"
 	"io/ioutil"
 	"net"
 	"net/http"
 	"path/filepath"
 	"regexp"
-	"simonwaldherr.de/go/golibs/as"
-	"simonwaldherr.de/go/golibs/file"
-	"simonwaldherr.de/go/golibs/ssl"
 	"strings"
 	"sync"
 	"time"
+
+	"golang.org/x/net/http2"
+	"simonwaldherr.de/go/golibs/file"
+	"simonwaldherr.de/go/golibs/ssl"
 )
 
 type mimeCtrl int
@@ -69,7 +69,6 @@ func (u *HandlerWrapper) String() string {
 
 func handlerify(re string, handler handler, mime mimeCtrl) *HandlerWrapper {
 	match := regexp.MustCompile(re)
-
 	return &HandlerWrapper{
 		match:   match,
 		handler: handler,
@@ -78,12 +77,10 @@ func handlerify(re string, handler handler, mime mimeCtrl) *HandlerWrapper {
 	}
 }
 
-//URL creates a handler for a given URL, the URL can contain a regular expression
 func URL(re string, view handler, handler mimeCtrl) *HandlerWrapper {
 	return handlerify(re, view, handler)
 }
 
-//Download creates a handler for a given URL and sends the attachment header
 func Download(re string, view handler) *HandlerWrapper {
 	return handlerify(re, view, DOWNLOAD)
 }
@@ -95,12 +92,11 @@ var extensions = []string{
 	".shtml",
 }
 
-//StaticFiles creates a handler for a given request path and a folder
 func StaticFiles(reqpath string, paths ...string) *HandlerWrapper {
 	return handlerify(reqpath, func(rw http.ResponseWriter, req *http.Request) (string, int) {
 		filename := req.URL.Path[len(reqpath):]
 		for _, path := range paths {
-			if strings.Count(path, "..") != 0 {
+			if strings.Contains(path, "..") {
 				return "", http.StatusNotFound
 			}
 			for _, ext := range extensions {
@@ -114,78 +110,77 @@ func StaticFiles(reqpath string, paths ...string) *HandlerWrapper {
 	}, AUTO)
 }
 
-//Favicon creates a handler for a favicon, its only argument is the path to the favicon file
 func Favicon(path string) *HandlerWrapper {
 	data, err := file.Read(path)
-	return handlerify("^/favicon.ico$",
-		func(rw http.ResponseWriter, req *http.Request) (string, int) {
-			if err != nil {
-				return "", http.StatusNotFound
-			}
-			return data, http.StatusOK
-		}, ICON)
+	return handlerify("^/favicon.ico$", func(rw http.ResponseWriter, req *http.Request) (string, int) {
+		if err != nil {
+			return "", http.StatusNotFound
+		}
+		return data, http.StatusOK
+	}, ICON)
 }
 
-//Redirect creates a handler for HTTP redirects
 func Redirect(path, destination string, code int) *HandlerWrapper {
-	return handlerify(path,
-		func(rw http.ResponseWriter, req *http.Request) (string, int) {
-			return destination, code
-		}, REDIRECT)
+	return handlerify(path, func(rw http.ResponseWriter, req *http.Request) (string, int) {
+		return destination, code
+	}, REDIRECT)
 }
 
-//Proxy creates proxy handler
 func Proxy(path, destination string) *HandlerWrapper {
 	re := regexp.MustCompile(path)
-	return handlerify(path,
-		func(rw http.ResponseWriter, req *http.Request) (string, int) {
-			httpClient := http.Client{}
+	return handlerify(path, func(rw http.ResponseWriter, req *http.Request) (string, int) {
+		httpClient := http.Client{}
 
-			body, err := ioutil.ReadAll(req.Body)
-			if err != nil {
-				http.Error(rw, err.Error(), http.StatusInternalServerError)
-				return "", http.StatusInternalServerError
-			}
+		body, err := ioutil.ReadAll(req.Body)
+		if err != nil {
+			http.Error(rw, err.Error(), http.StatusInternalServerError)
+			return "", http.StatusInternalServerError
+		}
+		req.Body = ioutil.NopCloser(bytes.NewReader(body))
 
-			req.Body = ioutil.NopCloser(bytes.NewReader(body))
-			url := fmt.Sprintf("%s%s", destination, re.ReplaceAllString(req.RequestURI, ""))
-			proxyReq, err := http.NewRequest(req.Method, url, bytes.NewReader(body))
-			proxyReq.Header = req.Header
-			resp, err := httpClient.Do(proxyReq)
-			if err != nil {
-				http.Error(rw, err.Error(), http.StatusBadGateway)
-				return "", http.StatusBadGateway
-			}
-			defer resp.Body.Close()
+		url := fmt.Sprintf("%s%s", destination, re.ReplaceAllString(req.RequestURI, ""))
+		proxyReq, err := http.NewRequest(req.Method, url, bytes.NewReader(body))
+		if err != nil {
+			http.Error(rw, err.Error(), http.StatusInternalServerError)
+			return "", http.StatusInternalServerError
+		}
+		proxyReq.Header = req.Header
 
-			for name, values := range resp.Header {
-				rw.Header()[name] = values
-			}
+		resp, err := httpClient.Do(proxyReq)
+		if err != nil {
+			http.Error(rw, err.Error(), http.StatusBadGateway)
+			return "", http.StatusBadGateway
+		}
+		defer resp.Body.Close()
 
-			rw.WriteHeader(resp.StatusCode)
-			io.Copy(rw, resp.Body)
+		copyHeaders(rw.Header(), resp.Header)
+		rw.WriteHeader(resp.StatusCode)
+		io.Copy(rw, resp.Body)
 
-			return "", 0
-		}, PROXY)
+		return "", 0
+	}, PROXY)
 }
 
-//Robots creates a handler for the robots.txt file
+func copyHeaders(dst, src http.Header) {
+	for k, v := range src {
+		for _, vv := range v {
+			dst.Add(k, vv)
+		}
+	}
+}
+
 func Robots(data string) *HandlerWrapper {
-	return handlerify("^/robots.txt$",
-		func(rw http.ResponseWriter, req *http.Request) (string, int) {
-			return data, http.StatusOK
-		}, PLAIN)
+	return handlerify("^/robots.txt$", func(rw http.ResponseWriter, req *http.Request) (string, int) {
+		return data, http.StatusOK
+	}, PLAIN)
 }
 
-//Humans creates a handler for the humans.txt file
 func Humans(data string) *HandlerWrapper {
-	return handlerify("^/humans.txt$",
-		func(rw http.ResponseWriter, req *http.Request) (string, int) {
-			return data, http.StatusOK
-		}, PLAIN)
+	return handlerify("^/humans.txt$", func(rw http.ResponseWriter, req *http.Request) (string, int) {
+		return data, http.StatusOK
+	}, PLAIN)
 }
 
-//NewWebServer returns a pointer to the webserver object
 func NewWebServer(port int, timeout time.Duration) *WebServer {
 	return &WebServer{
 		port:    port,
@@ -198,14 +193,12 @@ func (GWV *WebServer) InitLogChan() {
 	GWV.LogChan = make(chan string, 128)
 }
 
-//ConfigSSL sets parameter for the HTTPS configuration
 func (GWV *WebServer) ConfigSSL(port int, sslkey string, sslcert string, spdy bool) {
 	GWV.secureport = port
 	GWV.secureconf = append(GWV.secureconf, sslconf{sslkey: sslkey, sslcert: sslcert})
 	GWV.spdy = spdy
 }
 
-//ConfigSSLAddCert adds additional SSL Certs (select Cert by Server Name Indication (SNI))
 func (GWV *WebServer) ConfigSSLAddCert(sslkey, sslcert string) {
 	GWV.secureconf = append(GWV.secureconf, sslconf{sslkey: sslkey, sslcert: sslcert})
 }
@@ -219,28 +212,26 @@ func (GWV *WebServer) URLhandler(patterns ...*HandlerWrapper) {
 func (GWV *WebServer) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	GWV.WG.Add(1)
 	defer GWV.WG.Done()
+
 	request := req.URL.Path
 	rw.Header().Set("Server", "GWV")
 
 	for _, route := range GWV.routes {
-		matches := route.match.FindAllStringSubmatch(request, 1)
-		if len(matches) > 0 {
-
+		if route.match.MatchString(request) {
 			resp, status := route.handler(rw, req)
-
 			switch status {
 			case 0:
 				return
-			case 200, 201, 202, 418:
+			case http.StatusOK, http.StatusCreated, http.StatusAccepted, http.StatusTeapot:
 				GWV.handle200(rw, req, resp, route, status)
 				return
-			case 301, 302, 303, 307:
+			case http.StatusMovedPermanently, http.StatusFound, http.StatusSeeOther, http.StatusTemporaryRedirect:
 				http.Redirect(rw, req, resp, status)
 				return
-			case 400, 401, 403, 404, 405:
+			case http.StatusBadRequest, http.StatusUnauthorized, http.StatusForbidden, http.StatusNotFound, http.StatusMethodNotAllowed:
 				GWV.handle404(rw, req, status)
 				return
-			case 500, 501, 502, 503:
+			case http.StatusInternalServerError, http.StatusNotImplemented, http.StatusBadGateway, http.StatusServiceUnavailable:
 				GWV.handle500(rw, req, status)
 				return
 			}
@@ -257,86 +248,85 @@ func CheckSSL(certPath string, keyPath string) error {
 	return ssl.Check(certPath, keyPath)
 }
 
-//Start starts the web server
 func (GWV *WebServer) Start() {
 	GWV.WG.Add(1)
-	defer func() {
-		if r := recover(); r != nil {
-			GWV.logChannelHandler(fmt.Sprint("Recovered in f", r))
-		}
-	}()
-	httpServer := http.Server{
-		Addr:        ":" + as.String(GWV.port),
+	defer GWV.recoverFromPanic()
+
+	httpServer := &http.Server{
+		Addr:        fmt.Sprintf(":%d", GWV.port),
 		Handler:     GWV,
 		ReadTimeout: GWV.timeout * time.Second,
 	}
 
-	go func() {
-		var err error
-		GWV.logChannelHandler(fmt.Sprint("Serving HTTP on PORT: ", GWV.port))
-
-		listener, err := net.Listen("tcp", httpServer.Addr)
-		for !GWV.stop {
-			err = httpServer.Serve(listener)
-			GWV.extendedErrorHandler("can't start server:", err, true)
-		}
-		GWV.extendedErrorHandler("can't start server:", err, true)
-	}()
-
+	go GWV.startHTTPServer(httpServer)
 	if GWV.secureport != 0 {
-		var err error
-		noCert := true
-		tlsConf := &tls.Config{
-			MinVersion: tls.VersionTLS11,
-		}
-		tlsConf.Certificates = make([]tls.Certificate, len(GWV.secureconf))
-
-		for cert := range GWV.secureconf {
-			tlsConf.Certificates[cert], err = tls.LoadX509KeyPair(GWV.secureconf[cert].sslcert, GWV.secureconf[cert].sslkey)
-			if err == nil {
-				noCert = false
-			} else {
-				GWV.extendedErrorHandler("can't load key pair: ", err, true)
-			}
-		}
-		tlsConf.BuildNameToCertificate()
-
-		if noCert == true {
-			options := map[string]string{}
-			options["certPath"] = "ssl.cert"
-			options["keyPath"] = "ssl.key"
-			options["host"] = "*"
-			err := GenerateSSL(options)
-			GWV.extendedErrorHandler("can't generate ssl cert:", err, true)
-		}
-
-		httpsServer := http.Server{
-			Addr:        ":" + as.String(GWV.secureport),
-			Handler:     GWV,
-			ReadTimeout: GWV.timeout * time.Second,
-			TLSConfig:   tlsConf,
-		}
-
-		go func() {
-			var err error
-			GWV.logChannelHandler(fmt.Sprint("Serving HTTPS on PORT: ", GWV.secureport))
-
-			if GWV.spdy {
-				http2.ConfigureServer(&httpsServer, &http2.Server{})
-			}
-			listener, err := tls.Listen("tcp", httpsServer.Addr, httpsServer.TLSConfig)
-
-			for !GWV.stop {
-				err = httpsServer.Serve(listener)
-				GWV.extendedErrorHandler("can't start server:", err, true)
-			}
-
-			GWV.extendedErrorHandler("can't start server:", err, true)
-		}()
+		go GWV.startHTTPSServer()
 	}
 }
 
-//Stop stops all listeners and wait until all connections are closed
+func (GWV *WebServer) recoverFromPanic() {
+	if r := recover(); r != nil {
+		GWV.logChannelHandler(fmt.Sprintf("Recovered from panic: %v", r))
+	}
+}
+
+func (GWV *WebServer) startHTTPServer(server *http.Server) {
+	defer GWV.WG.Done()
+	listener, err := net.Listen("tcp", server.Addr)
+	if err != nil {
+		GWV.extendedErrorHandler("Unable to start HTTP server: ", err, true)
+		return
+	}
+	GWV.logChannelHandler(fmt.Sprintf("Serving HTTP on PORT: %d", GWV.port))
+
+	for !GWV.stop {
+		if err := server.Serve(listener); err != nil {
+			GWV.extendedErrorHandler("HTTP server error: ", err, false)
+		}
+	}
+}
+
+func (GWV *WebServer) startHTTPSServer() {
+	defer GWV.WG.Done()
+	tlsConfig := &tls.Config{
+		MinVersion: tls.VersionTLS11,
+	}
+
+	tlsConfig.Certificates = make([]tls.Certificate, len(GWV.secureconf))
+	for i, conf := range GWV.secureconf {
+		cert, err := tls.LoadX509KeyPair(conf.sslcert, conf.sslkey)
+		if err != nil {
+			GWV.extendedErrorHandler("Unable to load SSL certificate: ", err, true)
+			return
+		}
+		tlsConfig.Certificates[i] = cert
+	}
+	tlsConfig.BuildNameToCertificate()
+
+	httpsServer := &http.Server{
+		Addr:        fmt.Sprintf(":%d", GWV.secureport),
+		Handler:     GWV,
+		ReadTimeout: GWV.timeout * time.Second,
+		TLSConfig:   tlsConfig,
+	}
+
+	GWV.logChannelHandler(fmt.Sprintf("Serving HTTPS on PORT: %d", GWV.secureport))
+	listener, err := tls.Listen("tcp", httpsServer.Addr, tlsConfig)
+	if err != nil {
+		GWV.extendedErrorHandler("Unable to start HTTPS server: ", err, true)
+		return
+	}
+	if GWV.spdy {
+		http2.ConfigureServer(httpsServer, &http2.Server{})
+	}
+
+	for !GWV.stop {
+		if err := httpsServer.Serve(listener); err != nil {
+			GWV.extendedErrorHandler("HTTPS server error: ", err, false)
+		}
+	}
+}
+
 func (GWV *WebServer) Stop() {
 	if !GWV.stop {
 		GWV.stop = true

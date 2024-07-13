@@ -27,9 +27,7 @@ func main() {
 
 	cache := cache.New(24*time.Hour, 15*time.Minute)
 
-	cookieKey := make([]byte, 16)
-	//rand.Read(cookieKey)
-	cookieKey = []byte{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 42}
+	cookieKey := []byte{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 42}
 	cookieCrypt := gwv.NewSimpleCryptor(cookieKey, "cookieName")
 
 	dir := gopath.Dir()
