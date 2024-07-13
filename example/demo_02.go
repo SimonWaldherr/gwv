@@ -1,9 +1,9 @@
+//go:build local
 // +build local
 
 package main
 
 import (
-	gwv "../../gwv"
 	"fmt"
 	"log"
 	"net/http"
@@ -11,6 +11,7 @@ import (
 	"simonwaldherr.de/go/golibs/as"
 	"simonwaldherr.de/go/golibs/cachedfile"
 	"simonwaldherr.de/go/golibs/gopath"
+	"simonwaldherr.de/go/gwv"
 )
 
 func Page404(w http.ResponseWriter, req *http.Request) (string, int) {

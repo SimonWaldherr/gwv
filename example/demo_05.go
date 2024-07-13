@@ -1,11 +1,12 @@
+//go:build local
 // +build local
 
 package main
 
 import (
-	gwv "../../gwv"
 	"path/filepath"
 	"simonwaldherr.de/go/golibs/gopath"
+	"simonwaldherr.de/go/gwv"
 )
 
 func main() {

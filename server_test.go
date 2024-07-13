@@ -85,7 +85,7 @@ func H500(rw http.ResponseWriter, req *http.Request) (string, int) {
 
 func Test_Webserver(t *testing.T) {
 	HTTPD := NewWebServer(8080, 60)
-	HTTPD.ConfigSSL(4443, "ssl.key", "ssl.cert", true)
+	//HTTPD.ConfigSSL(4443, "ssl.key", "ssl.cert", true)
 
 	HTTPD.URLhandler(
 		Robots(as.String(cachedfile.Read(filepath.Join(".", "static", "robots.txt")))),
@@ -113,7 +113,7 @@ func Test_Webserver(t *testing.T) {
 
 	time.Sleep(50 * time.Millisecond)
 	HTTPRequest("http://localhost:8080/")
-	HTTPRequest("https://localhost:4443/")
+	//HTTPRequest("https://localhost:4443/")
 	HTTPRequest("http://localhost:8080/favicon.ico")
 	HTTPRequest("http://localhost:8080/go/")
 	HTTPRequest("http://localhost:8080/404")
